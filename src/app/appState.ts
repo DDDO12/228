@@ -192,20 +192,22 @@ export function useAppState() {
     async (soldierId: string, status: AttendanceStatus) => {
       setUndoRecord(currentRecord)
       const now = nowIso()
-      if (status === 'serving') {
+      if (status === 'serving' || status === 'cooking') {
         const targetItem = currentRecord.records.find((item) => item.soldierId === soldierId)
-        const servingCount = currentRecord.records.filter(
-          (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
-        ).length
-        if (servingCount >= 2) {
-          setToast(`${targetItem?.divisionName ?? '해당 포대'} 배식은 최대 2명까지 가능합니다.`)
-          return
+        if (status === 'serving') {
+          const servingCount = currentRecord.records.filter(
+            (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
+          ).length
+          if (servingCount >= 2) {
+            setToast(`${targetItem?.divisionName ?? '해당 포대'} 배식은 최대 2명까지 가능합니다.`)
+            return
+          }
         }
         const nextSoldiers = soldiers.map((soldier) =>
           soldier.id === soldierId
             ? {
                 ...soldier,
-                exceptionStatus: 'serving' as const,
+                exceptionStatus: status,
                 exceptionStart: currentRecord.date,
                 exceptionUntil: currentRecord.date,
                 updatedAt: now,
@@ -224,7 +226,7 @@ export function useAppState() {
               item.soldierId === soldierId
                 ? {
                     ...item,
-                    status: 'serving' as const,
+                    status,
                     exceptionStart: currentRecord.date,
                     exceptionUntil: currentRecord.date,
                     ate: true,
