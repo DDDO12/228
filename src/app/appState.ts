@@ -193,6 +193,14 @@ export function useAppState() {
       setUndoRecord(currentRecord)
       const now = nowIso()
       if (status === 'serving') {
+        const targetItem = currentRecord.records.find((item) => item.soldierId === soldierId)
+        const servingCount = currentRecord.records.filter(
+          (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
+        ).length
+        if (servingCount >= 2) {
+          setToast(`${targetItem?.divisionName ?? '해당 포대'} 배식은 최대 2명까지 가능합니다.`)
+          return
+        }
         const nextSoldiers = soldiers.map((soldier) =>
           soldier.id === soldierId
             ? {
