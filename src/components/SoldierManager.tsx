@@ -14,6 +14,7 @@ interface SoldierManagerProps {
   onDeleteDivision: (id: string) => void
   onDeleteSection: (id: string) => void
   onUpdate: (id: string, patch: Partial<Soldier>) => void
+  onBulkUpdate: (ids: string[], patch: Partial<Soldier>) => Promise<void>
   onUpdateDivision: (id: string, name: string) => Promise<boolean>
   onUpdateSection: (id: string, name: string) => Promise<boolean>
 }
@@ -31,6 +32,7 @@ export function SoldierManager({
   onDeleteDivision,
   onDeleteSection,
   onUpdate,
+  onBulkUpdate,
   onUpdateDivision,
   onUpdateSection,
 }: SoldierManagerProps) {
@@ -148,12 +150,14 @@ export function SoldierManager({
     )
   }
 
-  function applyBulkDivision() {
-    selectedIds.forEach((id) => onUpdate(id, { divisionId: bulkDivisionId || undefined }))
+  async function applyBulkDivision() {
+    await onBulkUpdate(selectedIds, { divisionId: bulkDivisionId || undefined })
+    setSelectedIds([])
   }
 
-  function applyBulkSection() {
-    selectedIds.forEach((id) => onUpdate(id, { section: bulkSection || undefined }))
+  async function applyBulkSection() {
+    await onBulkUpdate(selectedIds, { section: bulkSection || undefined })
+    setSelectedIds([])
   }
 
   function updateEditingSoldier(patch: Partial<Soldier>) {
@@ -346,7 +350,7 @@ export function SoldierManager({
                       </option>
                     ))}
                   </select>
-                  <button className="secondary-button" disabled={selectedIds.length === 0} onClick={applyBulkDivision} type="button">
+                  <button className="secondary-button" disabled={selectedIds.length === 0} onClick={() => void applyBulkDivision()} type="button">
                     포대 적용
                   </button>
                 </div>
@@ -359,7 +363,7 @@ export function SoldierManager({
                       </option>
                     ))}
                   </select>
-                  <button className="secondary-button" disabled={selectedIds.length === 0} onClick={applyBulkSection} type="button">
+                  <button className="secondary-button" disabled={selectedIds.length === 0} onClick={() => void applyBulkSection()} type="button">
                     분과 적용
                   </button>
                 </div>

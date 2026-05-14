@@ -477,6 +477,18 @@ export function useAppState() {
     [persistSoldiers, soldiers],
   )
 
+  const updateSoldiersBulk = useCallback(
+    async (ids: string[], patch: Partial<Soldier>) => {
+      if (ids.length === 0) return
+      const targets = new Set(ids)
+      const now = nowIso()
+      await persistSoldiers(
+        soldiers.map((soldier) => (targets.has(soldier.id) ? { ...soldier, ...patch, updatedAt: now } : soldier)),
+      )
+    },
+    [persistSoldiers, soldiers],
+  )
+
   const deleteSoldier = useCallback(
     async (id: string) => {
       await persistSoldiers(soldiers.filter((soldier) => soldier.id !== id))
@@ -661,6 +673,7 @@ export function useAppState() {
     updateInventoryItem,
     updateSection,
     updateSoldier,
+    updateSoldiersBulk,
   }
 }
 
