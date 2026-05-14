@@ -8,6 +8,7 @@ interface SoldierManagerProps {
   soldiers: Soldier[]
   onAdd: (input: Pick<Soldier, 'name' | 'divisionId' | 'note'>) => Promise<boolean>
   onAddDivision: (name: string) => Promise<boolean>
+  onDelete: (id: string) => void
   onDeleteDivision: (id: string) => void
   onUpdate: (id: string, patch: Partial<Soldier>) => void
   onUpdateDivision: (id: string, name: string) => Promise<boolean>
@@ -18,6 +19,7 @@ export function SoldierManager({
   soldiers,
   onAdd,
   onAddDivision,
+  onDelete,
   onDeleteDivision,
   onUpdate,
   onUpdateDivision,
@@ -174,14 +176,25 @@ export function SoldierManager({
                     {duplicateNames.has(duplicateKey) ? ' · 중복 이름' : ''}
                   </small>
                 </div>
-                <label className="switch">
-                  <input
-                    checked={soldier.active}
-                    onChange={(event) => onUpdate(soldier.id, { active: event.target.checked })}
-                    type="checkbox"
-                  />
-                  <span />
-                </label>
+                <div className="soldier-card-actions">
+                  <label className="switch">
+                    <input
+                      checked={soldier.active}
+                      onChange={(event) => onUpdate(soldier.id, { active: event.target.checked })}
+                      type="checkbox"
+                    />
+                    <span />
+                  </label>
+                  <button
+                    aria-label="인원 삭제"
+                    onClick={() => {
+                      if (window.confirm(`${soldier.name} 인원을 삭제할까요?`)) onDelete(soldier.id)
+                    }}
+                    type="button"
+                  >
+                    <Trash2 size={17} />
+                  </button>
+                </div>
               </div>
               <select
                 onChange={(event) => onUpdate(soldier.id, { divisionId: event.target.value || undefined })}

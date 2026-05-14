@@ -785,6 +785,24 @@ textarea {
   gap: 12px;
 }
 
+.soldier-card-actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+
+.soldier-card-actions > button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: #f5f5f7;
+  color: #dc2626;
+}
+
 .soldier-card select {
   min-height: 38px;
 }

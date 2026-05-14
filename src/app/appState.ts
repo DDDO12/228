@@ -269,6 +269,20 @@ export function useAppState() {
     [persistSoldiers, soldiers],
   )
 
+  const deleteSoldier = useCallback(
+    async (id: string) => {
+      await persistSoldiers(soldiers.filter((soldier) => soldier.id !== id))
+      await persistRecords(
+        attendanceRecords.map((record) => ({
+          ...record,
+          records: record.records.filter((item) => item.soldierId !== id),
+          updatedAt: nowIso(),
+        })),
+      )
+    },
+    [attendanceRecords, persistRecords, persistSoldiers, soldiers],
+  )
+
   const addInventoryItem = useCallback(
     async (input: Pick<InventoryItem, 'name' | 'unit' | 'quantity' | 'minimumQuantity' | 'note'>) => {
       const trimmed = input.name.trim()
@@ -396,6 +410,7 @@ export function useAppState() {
     date,
     deleteDivision,
     deleteInventoryItem,
+    deleteSoldier,
     divisions,
     importBackup,
     inventoryItems,
