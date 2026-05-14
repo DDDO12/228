@@ -715,21 +715,16 @@ textarea {
   font-size: 22px;
 }
 
-.exception-wheel {
+.exception-grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(118px, 1fr);
-  gap: 8px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-  scroll-snap-type: x mandatory;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.exception-wheel button {
+.exception-grid button {
   display: grid;
   gap: 4px;
-  min-height: 94px;
-  scroll-snap-align: center;
+  min-height: 86px;
   border: 1px solid rgba(60, 60, 67, 0.1);
   border-radius: 8px;
   padding: 12px;
@@ -738,11 +733,21 @@ textarea {
   text-align: left;
 }
 
-.exception-wheel strong {
+.exception-grid button.status-choice-ate {
+  border-color: rgba(15, 118, 110, 0.24);
+  background: #effaf7;
+}
+
+.exception-grid button.status-choice-missing {
+  border-color: rgba(220, 38, 38, 0.18);
+  background: #fff7f7;
+}
+
+.exception-grid strong {
   font-size: 18px;
 }
 
-.exception-wheel span {
+.exception-grid span {
   color: #6e6e73;
   font-size: 12px;
 }

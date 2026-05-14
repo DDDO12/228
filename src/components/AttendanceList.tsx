@@ -93,12 +93,12 @@ export function AttendanceList({
                 <X size={20} />
               </button>
             </header>
-            <div className="exception-wheel">
-              <button onClick={() => applyStatus('ate')} type="button">
+            <div className="exception-grid">
+              <button className="status-choice-ate" onClick={() => applyStatus('ate')} type="button">
                 <strong>취식</strong>
                 <span>식사 완료</span>
               </button>
-              <button onClick={() => applyStatus('missing')} type="button">
+              <button className="status-choice-missing" onClick={() => applyStatus('missing')} type="button">
                 <strong>미취식</strong>
                 <span>단순 미취식</span>
               </button>

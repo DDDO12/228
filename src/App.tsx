@@ -15,8 +15,12 @@ function App() {
   const [route, setRoute] = useState<RouteId>('attendance')
   const routeIndex = routes.indexOf(route)
   const swipe = useSwipeable({
-    onSwipedLeft: () => setRoute(routes[Math.min(routes.length - 1, routeIndex + 1)]),
-    onSwipedRight: () => setRoute(routes[Math.max(0, routeIndex - 1)]),
+    onSwipedLeft: () => {
+      if (route !== 'attendance') setRoute(routes[Math.min(routes.length - 1, routeIndex + 1)])
+    },
+    onSwipedRight: () => {
+      if (route !== 'attendance') setRoute(routes[Math.max(0, routeIndex - 1)])
+    },
     trackMouse: true,
   })
 
