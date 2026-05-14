@@ -572,6 +572,7 @@ textarea {
 .division-filter-row {
   display: flex;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
 .chip-row button {

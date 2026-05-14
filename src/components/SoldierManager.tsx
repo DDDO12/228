@@ -46,6 +46,7 @@ export function SoldierManager({
   const [editingSectionId, setEditingSectionId] = useState<string>()
   const [editingSectionName, setEditingSectionName] = useState('')
   const [query, setQuery] = useState('')
+  const [divisionFilterId, setDivisionFilterId] = useState<string | 'all' | 'unassigned'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [bulkDivisionId, setBulkDivisionId] = useState('')
   const [bulkSection, setBulkSection] = useState('')
@@ -58,6 +59,8 @@ export function SoldierManager({
     .filter((soldier) => {
       const term = query.trim().toLowerCase()
       const division = divisionMap.get(soldier.divisionId ?? '') ?? '포대 미지정'
+      if (divisionFilterId === 'unassigned' && soldier.divisionId) return false
+      if (divisionFilterId !== 'all' && divisionFilterId !== 'unassigned' && soldier.divisionId !== divisionFilterId) return false
       return (
         !term ||
         soldier.name.toLowerCase().includes(term) ||
@@ -72,6 +75,7 @@ export function SoldierManager({
 
   const filteredIds = filtered.map((soldier) => soldier.id)
   const selectedFilteredCount = filteredIds.filter((id) => selectedIds.includes(id)).length
+  const hasUnassignedSoldiers = soldiers.some((soldier) => !soldier.divisionId)
   const duplicateNames = new Set(
     soldiers
       .filter((soldier, index) =>
@@ -201,6 +205,31 @@ export function SoldierManager({
         <Search size={18} />
         <input onChange={(event) => setQuery(event.target.value)} placeholder="이름, 포대, 분과, 메모 검색" value={query} />
       </label>
+
+      <div className="chip-row division-filter-row" aria-label="포대별 인원 필터">
+        <button className={divisionFilterId === 'all' ? 'active' : ''} onClick={() => setDivisionFilterId('all')} type="button">
+          전체
+        </button>
+        {divisions.map((division) => (
+          <button
+            className={divisionFilterId === division.id ? 'active' : ''}
+            key={division.id}
+            onClick={() => setDivisionFilterId(division.id)}
+            type="button"
+          >
+            {division.name}
+          </button>
+        ))}
+        {hasUnassignedSoldiers && (
+          <button
+            className={divisionFilterId === 'unassigned' ? 'active' : ''}
+            onClick={() => setDivisionFilterId('unassigned')}
+            type="button"
+          >
+            미지정
+          </button>
+        )}
+      </div>
 
       <div className="soldier-grid">
         {filtered.map((soldier) => {
