@@ -16,6 +16,7 @@ import { toDateInputValue } from '../utils/date'
 import { createId } from '../utils/id'
 
 const nowIso = () => new Date().toISOString()
+type ScheduledExceptionStatus = NonNullable<Soldier['exceptionStatus']>
 
 function createDivision(name: string): Division {
   const now = nowIso()
@@ -153,15 +154,45 @@ export function useAppState() {
     async (soldierId: string, status: AttendanceStatus) => {
       setUndoRecord(currentRecord)
       const now = nowIso()
+      const nextSoldiers =
+        status === 'ate' || status === 'missing'
+          ? soldiers.map((soldier) =>
+              soldier.id === soldierId
+                ? { ...soldier, exceptionStatus: undefined, exceptionUntil: undefined, updatedAt: now }
+                : soldier,
+            )
+          : soldiers
+      if (nextSoldiers !== soldiers) await persistSoldiers(nextSoldiers)
       await upsertRecord({
         ...currentRecord,
         records: currentRecord.records.map((item) =>
-          item.soldierId === soldierId ? { ...item, status, ate: status === 'ate', updatedAt: now } : item,
+          item.soldierId === soldierId
+            ? { ...item, status, exceptionUntil: undefined, ate: status === 'ate', updatedAt: now }
+            : item,
         ),
         updatedAt: now,
       })
     },
-    [currentRecord, upsertRecord],
+    [currentRecord, persistSoldiers, soldiers, upsertRecord],
+  )
+
+  const setScheduledException = useCallback(
+    async (soldierId: string, status: ScheduledExceptionStatus, until: string) => {
+      setUndoRecord(currentRecord)
+      const now = nowIso()
+      const nextSoldiers = soldiers.map((soldier) =>
+        soldier.id === soldierId ? { ...soldier, exceptionStatus: status, exceptionUntil: until, updatedAt: now } : soldier,
+      )
+      await persistSoldiers(nextSoldiers)
+      await upsertRecord({
+        ...currentRecord,
+        records: currentRecord.records.map((item) =>
+          item.soldierId === soldierId ? { ...item, status, exceptionUntil: until, ate: false, updatedAt: now } : item,
+        ),
+        updatedAt: now,
+      })
+    },
+    [currentRecord, persistSoldiers, soldiers, upsertRecord],
   )
 
   const toggleAttendance = useCallback(
@@ -422,6 +453,7 @@ export function useAppState() {
     resetCurrentRecord,
     saveMemo,
     setAttendanceStatus,
+    setScheduledException,
     setDate,
     setMeal,
     setToast,

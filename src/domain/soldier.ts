@@ -12,6 +12,8 @@ export interface Soldier {
   name: string
   category?: Category
   divisionId?: string
+  exceptionStatus?: 'leave' | 'dispatch' | 'duty' | 'etc'
+  exceptionUntil?: string
   active: boolean
   note?: string
   createdAt: string

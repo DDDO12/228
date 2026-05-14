@@ -118,7 +118,10 @@ export function HomeScreen({ app }: { app: AppState }) {
               return (
                 <div key={item.soldierId}>
                   <span>{item.divisionName} · {item.name}</span>
-                  <strong>{attendanceStatusLabels[status]}</strong>
+                  <strong>
+                    {attendanceStatusLabels[status]}
+                    {item.exceptionUntil ? ` ~${item.exceptionUntil}` : ''}
+                  </strong>
                 </div>
               )
             })}

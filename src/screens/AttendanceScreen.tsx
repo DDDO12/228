@@ -66,6 +66,7 @@ export function AttendanceScreen({ app }: { app: AppState }) {
       <AttendanceList
         divisionId={divisionId}
         onSetStatus={(id, status) => void app.setAttendanceStatus(id, status)}
+        onSetScheduledException={(id, status, until) => void app.setScheduledException(id, status, until)}
         onToggle={(id) => void app.toggleAttendance(id)}
         onlyActive={onlyChecked}
         query={query}

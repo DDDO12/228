@@ -5,6 +5,8 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 * {
@@ -15,6 +17,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100svh;
+  overflow-x: hidden;
+  overscroll-behavior-y: contain;
 }
 
 button,
@@ -26,6 +30,7 @@ textarea {
 
 button {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 #root {
@@ -212,6 +217,7 @@ main {
 
 .panel-title-row h2 {
   margin: 0;
+  min-width: 0;
 }
 
 .panel-title-row small {
@@ -262,10 +268,12 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
 }
 
 .division-progress-list span,
 .compact-list span {
+  min-width: 0;
   color: #6e6e73;
   font-size: 13px;
 }
@@ -274,6 +282,9 @@ main {
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .progress-track {
@@ -550,7 +561,7 @@ textarea {
 
 .attendance-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
   gap: 8px;
 }
 
@@ -620,6 +631,8 @@ textarea {
   display: block;
   color: #1d1d1f;
   font-size: 17px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .attendance-tile small {
@@ -743,6 +756,11 @@ textarea {
   background: #fff7f7;
 }
 
+.exception-grid button.status-choice-leave {
+  border-color: rgba(37, 99, 235, 0.24);
+  background: #f7faff;
+}
+
 .exception-grid strong {
   font-size: 18px;
 }
@@ -750,6 +768,20 @@ textarea {
 .exception-grid span {
   color: #6e6e73;
   font-size: 12px;
+}
+
+.leave-date-control {
+  display: grid;
+  gap: 7px;
+  border-radius: 8px;
+  padding: 12px;
+  background: #f5f5f7;
+}
+
+.leave-date-control span {
+  color: #6e6e73;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .empty-state {
@@ -762,12 +794,12 @@ textarea {
 .division-grid,
 .inventory-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
   gap: 8px;
 }
 
 .division-grid {
-  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(184px, 1fr));
 }
 
 .soldier-card,
@@ -788,6 +820,13 @@ textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+  min-width: 0;
+}
+
+.soldier-card-top > div,
+.division-card > div,
+.inventory-card-header > div {
+  min-width: 0;
 }
 
 .soldier-card-actions {
@@ -1301,5 +1340,38 @@ textarea {
 
   .category-summary {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 430px) {
+  .app-header {
+    padding-inline: 14px;
+  }
+
+  .app-header h1 {
+    font-size: 24px;
+  }
+
+  main {
+    padding-inline: 10px;
+  }
+
+  .attendance-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .soldier-grid,
+  .division-grid,
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exception-picker {
+    border-radius: 14px 14px 0 0;
+    padding-inline: 14px;
+  }
+
+  .exception-grid button {
+    min-height: 78px;
   }
 }

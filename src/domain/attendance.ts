@@ -32,6 +32,7 @@ export interface AttendanceItem {
   divisionId?: string
   divisionName: string
   status: AttendanceStatus
+  exceptionUntil?: string
   ate?: boolean
   updatedAt: string
 }
@@ -49,6 +50,11 @@ function resolveDivision(soldier: Soldier, divisions: Division[]) {
   return divisions.find((division) => division.id === soldier.divisionId)
 }
 
+function resolveScheduledException(soldier: Soldier, date: string) {
+  if (!soldier.exceptionStatus || !soldier.exceptionUntil) return undefined
+  return soldier.exceptionUntil >= date ? soldier.exceptionStatus : undefined
+}
+
 export function createAttendanceRecord(
   date: string,
   meal: MealType,
@@ -64,13 +70,16 @@ export function createAttendanceRecord(
       .filter((soldier) => soldier.active)
       .map((soldier) => {
         const division = resolveDivision(soldier, divisions)
+        const scheduledStatus = resolveScheduledException(soldier, date)
+        const status: AttendanceStatus = scheduledStatus ?? 'missing'
         return {
           soldierId: soldier.id,
           name: soldier.name,
           category: soldier.category,
           divisionId: soldier.divisionId,
           divisionName: division?.name ?? '미지정',
-          status: 'missing',
+          status,
+          exceptionUntil: scheduledStatus ? soldier.exceptionUntil : undefined,
           ate: false,
           updatedAt: now,
         }
@@ -90,7 +99,8 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
     records: activeSoldiers.map((soldier) => {
       const previous = existing.get(soldier.id)
       const division = resolveDivision(soldier, divisions)
-      const status = normalizeAttendanceStatus(previous?.status, previous?.ate)
+      const scheduledStatus = resolveScheduledException(soldier, record.date)
+      const status: AttendanceStatus = scheduledStatus ?? normalizeAttendanceStatus(previous?.status, previous?.ate)
       return {
         soldierId: soldier.id,
         name: soldier.name,
@@ -98,6 +108,7 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
         divisionId: soldier.divisionId,
         divisionName: division?.name ?? previous?.divisionName ?? '미지정',
         status,
+        exceptionUntil: scheduledStatus ? soldier.exceptionUntil : previous?.exceptionUntil,
         ate: status === 'ate',
         updatedAt: previous?.updatedAt ?? now,
       }

@@ -8,7 +8,7 @@ import {
   type AttendanceStatus,
 } from '../domain/attendance'
 import type { AttendanceItem, AttendanceRecord } from '../domain/attendance'
-import { formatTime } from '../utils/date'
+import { formatTime, toDateInputValue } from '../utils/date'
 
 interface AttendanceListProps {
   divisionId: string | 'all'
@@ -17,6 +17,7 @@ interface AttendanceListProps {
   record: AttendanceRecord
   showMissingOnly: boolean
   onSetStatus: (soldierId: string, status: AttendanceStatus) => void
+  onSetScheduledException: (soldierId: string, status: 'leave' | 'dispatch' | 'duty' | 'etc', until: string) => void
   onToggle: (soldierId: string) => void
 }
 
@@ -27,9 +28,11 @@ export function AttendanceList({
   record,
   showMissingOnly,
   onSetStatus,
+  onSetScheduledException,
   onToggle,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
+  const [leaveUntil, setLeaveUntil] = useState(toDateInputValue())
   const normalizedQuery = query.trim().toLowerCase()
   const items = record.records.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -48,8 +51,18 @@ export function AttendanceList({
 
   function applyStatus(status: AttendanceStatus) {
     if (!selectedItem) return
+    if (status === 'leave') {
+      onSetScheduledException(selectedItem.soldierId, status, leaveUntil)
+      setSelectedItem(undefined)
+      return
+    }
     onSetStatus(selectedItem.soldierId, status)
     setSelectedItem(undefined)
+  }
+
+  function openPicker(item: AttendanceItem) {
+    setLeaveUntil(item.exceptionUntil ?? toDateInputValue())
+    setSelectedItem(item)
   }
 
   if (items.length === 0) {
@@ -67,12 +80,14 @@ export function AttendanceList({
                 <span className="checkmark">{status === 'ate' && <Check size={18} />}</span>
                 <span className="attendance-person">
                   <strong>{item.name}</strong>
-                  <small>{item.divisionName} · {formatTime(item.updatedAt)}</small>
+                  <small>
+                    {item.divisionName} · {item.exceptionUntil ? `${item.exceptionUntil}까지` : formatTime(item.updatedAt)}
+                  </small>
                 </span>
               </button>
               <div className="attendance-tile-footer">
                 <span className={`status-pill status-pill-${status}`}>{attendanceStatusLabels[status]}</span>
-                <button className="exception-open-button" onClick={() => setSelectedItem(item)} type="button">
+                <button className="exception-open-button" onClick={() => openPicker(item)} type="button">
                   열외 <ChevronRight size={15} />
                 </button>
               </div>
@@ -103,12 +118,16 @@ export function AttendanceList({
                 <span>단순 미취식</span>
               </button>
               {exceptionStatuses.map((status) => (
-                <button key={status} onClick={() => applyStatus(status)} type="button">
+                <button className={status === 'leave' ? 'status-choice-leave' : ''} key={status} onClick={() => applyStatus(status)} type="button">
                   <strong>{attendanceStatusLabels[status]}</strong>
-                  <span>열외 처리</span>
+                  <span>{status === 'leave' ? '기간 유지' : '열외 처리'}</span>
                 </button>
               ))}
             </div>
+            <label className="leave-date-control">
+              <span>휴가 유지 기간</span>
+              <input min={toDateInputValue()} onChange={(event) => setLeaveUntil(event.target.value)} type="date" value={leaveUntil} />
+            </label>
           </section>
         </div>
       )}

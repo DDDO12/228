@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { useAppState } from './app/appState'
 import { routes, type RouteId } from './app/routes'
@@ -10,9 +10,22 @@ import { HomeScreen } from './screens/HomeScreen'
 import { InventoryScreen } from './screens/InventoryScreen'
 import { MemoScreen } from './screens/MemoScreen'
 
+const routeStorageKey = 'meal-check:last-route'
+
+function isRoute(value: string | null): value is RouteId {
+  return Boolean(value && routes.includes(value as RouteId))
+}
+
+function getInitialRoute(): RouteId {
+  const hashRoute = window.location.hash.replace('#', '')
+  if (isRoute(hashRoute)) return hashRoute
+  const storedRoute = window.localStorage.getItem(routeStorageKey)
+  return isRoute(storedRoute) ? storedRoute : 'attendance'
+}
+
 function App() {
   const app = useAppState()
-  const [route, setRoute] = useState<RouteId>('attendance')
+  const [route, setRoute] = useState<RouteId>(() => getInitialRoute())
   const routeIndex = routes.indexOf(route)
   const swipe = useSwipeable({
     onSwipedLeft: () => {
@@ -23,6 +36,11 @@ function App() {
     },
     trackMouse: true,
   })
+
+  useEffect(() => {
+    window.localStorage.setItem(routeStorageKey, route)
+    window.history.replaceState({ route }, '', `${window.location.pathname}${window.location.search}#${route}`)
+  }, [route])
 
   if (!app.isReady) return <SplashScreen />
 
