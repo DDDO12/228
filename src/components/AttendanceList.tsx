@@ -50,8 +50,8 @@ export function AttendanceList({
     const status = normalizeAttendanceStatus(item.status, item.ate)
     if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
     if (section !== 'all' && (item.section ?? '') !== section) return false
-    if (showMissingOnly && isAteStatus(status)) return false
-    if (onlyActive && !isAteStatus(status)) return false
+    if (showMissingOnly && status === 'ate') return false
+    if (onlyActive && !isAteStatus(item.status, item.ate)) return false
     if (
       normalizedQuery &&
       !item.name.toLowerCase().includes(normalizedQuery) &&
@@ -67,7 +67,7 @@ export function AttendanceList({
     const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
     return rank(statusA) - rank(statusB) || a.divisionName.localeCompare(b.divisionName) || a.name.localeCompare(b.name)
   })
-  const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
+  const ateCount = items.filter((item) => isAteStatus(item.status, item.ate)).length
   const exceptionCount = items.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
@@ -136,12 +136,13 @@ export function AttendanceList({
       <div className="attendance-grid">
         {items.map((item) => {
           const status = normalizeAttendanceStatus(item.status, item.ate)
+          const isCompleted = isAteStatus(item.status, item.ate)
           const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
           const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '열외' : attendanceStatusLabels[status]
           return (
             <article className={`attendance-tile status-${status}`} key={item.soldierId}>
               <button className="attendance-main-button" onClick={() => onToggle(item.soldierId)} type="button">
-                <span className="checkmark">{status === 'ate' && <Check size={18} />}</span>
+                <span className="checkmark">{isCompleted && <Check size={18} />}</span>
                 <span className="attendance-person">
                   <span className="attendance-name-line">
                     <strong>{item.name}</strong>
@@ -155,7 +156,7 @@ export function AttendanceList({
               </button>
               <div className="attendance-tile-footer">
                 <button className={`status-action status-action-${status}`} onClick={() => onToggle(item.soldierId)} type="button">
-                  {status === 'ate' ? '취식' : status === 'missing' ? '미취식' : '취식'}
+                  {isCompleted ? '취식' : '미취식'}
                 </button>
                 <button
                   className={`exception-open-button ${isLeaveActive ? 'leave-active-button' : ''}`}

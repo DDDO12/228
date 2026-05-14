@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createAttendanceRecord,
-  normalizeAttendanceStatus,
+  isAteStatus,
   syncAttendanceRecord,
   type AttendanceRecord,
   type AttendanceStatus,
@@ -9,7 +9,7 @@ import {
 } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
-import { mealLabels, suggestMealType, type MealType } from '../domain/meal'
+import { mealLabels, mealOrder, suggestMealType, type MealType } from '../domain/meal'
 import type { Division, Section, Soldier } from '../domain/soldier'
 import { localStore } from '../storage/localStore'
 import type { AppBackup } from '../storage/storageAdapter'
@@ -192,6 +192,45 @@ export function useAppState() {
     async (soldierId: string, status: AttendanceStatus) => {
       setUndoRecord(currentRecord)
       const now = nowIso()
+      if (status === 'serving') {
+        const nextSoldiers = soldiers.map((soldier) =>
+          soldier.id === soldierId
+            ? {
+                ...soldier,
+                exceptionStatus: 'serving' as const,
+                exceptionStart: currentRecord.date,
+                exceptionUntil: currentRecord.date,
+                updatedAt: now,
+              }
+            : soldier,
+        )
+        await persistSoldiers(nextSoldiers)
+        const nextRecords = mealOrder.map((itemMeal) => {
+          const existing = attendanceRecords.find((record) => record.date === currentRecord.date && record.meal === itemMeal)
+          const base = existing
+            ? syncAttendanceRecord(existing, nextSoldiers, divisions)
+            : createAttendanceRecord(currentRecord.date, itemMeal, nextSoldiers, divisions)
+          return {
+            ...base,
+            records: base.records.map((item) =>
+              item.soldierId === soldierId
+                ? {
+                    ...item,
+                    status: 'serving' as const,
+                    exceptionStart: currentRecord.date,
+                    exceptionUntil: currentRecord.date,
+                    ate: true,
+                    updatedAt: now,
+                  }
+                : item,
+            ),
+            updatedAt: now,
+          }
+        })
+        const untouchedRecords = attendanceRecords.filter((record) => record.date !== currentRecord.date)
+        await persistRecords([...untouchedRecords, ...nextRecords].sort((a, b) => a.id.localeCompare(b.id)))
+        return
+      }
       const nextSoldiers = soldiers.map((soldier) =>
         soldier.id === soldierId
           ? { ...soldier, exceptionStatus: undefined, exceptionStart: undefined, exceptionUntil: undefined, updatedAt: now }
@@ -202,13 +241,13 @@ export function useAppState() {
         ...currentRecord,
         records: currentRecord.records.map((item) =>
           item.soldierId === soldierId
-            ? { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: status === 'ate', updatedAt: now }
+            ? { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: isAteStatus(status), updatedAt: now }
             : item,
         ),
         updatedAt: now,
       })
     },
-    [currentRecord, persistSoldiers, soldiers, upsertRecord],
+    [attendanceRecords, currentRecord, divisions, persistRecords, persistSoldiers, soldiers, upsertRecord],
   )
 
   const setScheduledException = useCallback(
@@ -232,7 +271,7 @@ export function useAppState() {
                 status: recordStatus,
                 exceptionStart: appliesToCurrentDate ? start : undefined,
                 exceptionUntil: appliesToCurrentDate ? until : undefined,
-                ate: false,
+                ate: isAteStatus(recordStatus),
                 updatedAt: now,
               }
             : item,
@@ -274,7 +313,7 @@ export function useAppState() {
         setToast('휴가 기간 중인 인원은 카드 터치로 변경되지 않습니다.')
         return
       }
-      const nextStatus = normalizeAttendanceStatus(item?.status, item?.ate) === 'ate' ? 'missing' : 'ate'
+      const nextStatus = isAteStatus(item?.status, item?.ate) ? 'missing' : 'ate'
       await setAttendanceStatus(soldierId, nextStatus)
     },
     [currentRecord.records, setAttendanceStatus],
@@ -289,7 +328,7 @@ export function useAppState() {
         records: currentRecord.records.map((item) =>
           item.status === 'leave' && item.exceptionUntil
             ? item
-            : { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: status === 'ate', updatedAt: now },
+            : { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: isAteStatus(status), updatedAt: now },
         ),
         updatedAt: now,
       })

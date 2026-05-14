@@ -1,6 +1,7 @@
 import {
   attendanceStatusLabels,
   attendanceStatuses,
+  isAteStatus,
   normalizeAttendanceStatus,
   type AttendanceStatus,
 } from './attendance'
@@ -12,6 +13,7 @@ function orderedDivisionNames(record: AttendanceRecord) {
 }
 
 function countByStatus(record: AttendanceRecord, status: AttendanceStatus) {
+  if (status === 'ate') return record.records.filter((item) => isAteStatus(item.status, item.ate)).length
   return record.records.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status).length
 }
 
@@ -25,8 +27,11 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
   if (includeDivisionDetails) {
     orderedDivisionNames(record).forEach((divisionName) => {
       const items = record.records.filter((item) => item.divisionName === divisionName)
-      const ate = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
-      const excluded = items.length - ate
+      const ate = items.filter((item) => isAteStatus(item.status, item.ate)).length
+      const excluded = items.filter((item) => {
+        const status = normalizeAttendanceStatus(item.status, item.ate)
+        return status !== 'ate' && status !== 'missing'
+      }).length
       lines.push(`${divisionName}: 취식 ${ate}/${items.length}명, 미취식/열외 ${excluded}명`)
     })
     lines.push('')
@@ -47,7 +52,7 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
           .map((item) => `${item.divisionName} ${item.section ? `${item.section} ` : ''}${item.name}`)
         if (names.length > 0) lines.push(`${attendanceStatusLabels[status]} - ${names.join(', ')}`)
       })
-    if (record.records.every((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate')) lines.push('없음')
+    if (record.records.every((item) => isAteStatus(item.status, item.ate))) lines.push('없음')
   }
 
   return lines.join('\n')

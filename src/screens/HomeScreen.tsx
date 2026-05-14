@@ -4,6 +4,7 @@ import type { AppState } from '../app/appState'
 import {
   attendanceStatusLabels,
   attendanceStatuses,
+  isAteStatus,
   normalizeAttendanceStatus,
   syncAttendanceRecord,
   type AttendanceItem,
@@ -15,6 +16,7 @@ import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { formatCompactDate, formatTime } from '../utils/date'
 
 function countItems(items: AttendanceItem[], status: AttendanceStatus) {
+  if (status === 'ate') return items.filter((item) => isAteStatus(item.status, item.ate)).length
   return items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status).length
 }
 
@@ -33,7 +35,10 @@ export function HomeScreen({ app }: { app: AppState }) {
   const total = selectedDateItems.length
   const ate = countItems(selectedDateItems, 'ate')
   const missing = countItems(selectedDateItems, 'missing')
-  const excluded = total - ate - missing
+  const excluded = selectedDateItems.filter((item) => {
+    const status = normalizeAttendanceStatus(item.status, item.ate)
+    return status !== 'ate' && status !== 'missing'
+  }).length
   const progress = total > 0 ? Math.round((ate / total) * 100) : 0
   const lowStockItems = app.inventoryItems.filter(isLowStock)
   const exceptionItems = selectedDateItems.filter((item) => {
@@ -103,7 +108,10 @@ export function HomeScreen({ app }: { app: AppState }) {
               {record ? (
                 <span>
                   취식 {countRecord(record, 'ate')}명 · 미취식 {countRecord(record, 'missing')}명 · 열외{' '}
-                  {record.records.length - countRecord(record, 'ate') - countRecord(record, 'missing')}명
+                  {record.records.filter((item) => {
+                    const status = normalizeAttendanceStatus(item.status, item.ate)
+                    return status !== 'ate' && status !== 'missing'
+                  }).length}명
                 </span>
               ) : (
                 <span>기록 없음</span>

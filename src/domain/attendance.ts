@@ -41,7 +41,7 @@ export const attendanceStatuses: AttendanceStatus[] = [
 export const exceptionStatuses: ScheduledExceptionStatus[] = ['leave', 'dispatch', 'mowing', 'serving', 'cooking']
 
 export function isAteStatus(status?: AttendanceStatus, ate?: boolean) {
-  return status ? status === 'ate' : Boolean(ate)
+  return status ? status !== 'missing' : Boolean(ate)
 }
 
 export function normalizeAttendanceStatus(status?: AttendanceStatus, ate?: boolean): AttendanceStatus {
@@ -109,7 +109,7 @@ export function createAttendanceRecord(
           status,
           exceptionStart: scheduledStatus ? soldier.exceptionStart : undefined,
           exceptionUntil: scheduledStatus ? soldier.exceptionUntil : undefined,
-          ate: false,
+          ate: isAteStatus(status),
           updatedAt: now,
         }
       }),
@@ -141,7 +141,7 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
         status,
         exceptionStart: scheduledStatus ? soldier.exceptionStart : undefined,
         exceptionUntil: scheduledStatus ? soldier.exceptionUntil : undefined,
-        ate: status === 'ate',
+        ate: isAteStatus(status, previous?.ate),
         updatedAt: previous?.updatedAt ?? now,
       }
     }),
