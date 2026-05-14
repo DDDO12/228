@@ -18,7 +18,7 @@ export function AppShell({ app, route, children, onRouteChange }: AppShellProps)
 
   return (
     <div className="app-shell">
-      <Header date={app.date} onSettings={() => setSettingsOpen(true)} route={route} />
+      <Header date={app.date} onDateChange={app.setDate} onSettings={() => setSettingsOpen(true)} route={route} />
       <main>
         <AnimatePresence mode="wait">
           <motion.div

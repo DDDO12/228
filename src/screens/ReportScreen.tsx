@@ -21,7 +21,6 @@ export function ReportScreen({ app }: { app: AppState }) {
     <div className="stack">
       <section className="panel control-panel">
         <div className="field-line">
-          <input onChange={(event) => app.setDate(event.target.value)} type="date" value={app.date} />
           <MealSelector meal={app.meal} onChange={app.setMeal} />
         </div>
         <div className="toggle-line">
@@ -33,7 +32,7 @@ export function ReportScreen({ app }: { app: AppState }) {
               checked={includeDivisionDetails}
               onChange={(event) => setIncludeDivisionDetails(event.target.checked)}
               type="checkbox"
-            /> 분과 상세
+            /> 포대 상세
           </label>
         </div>
       </section>

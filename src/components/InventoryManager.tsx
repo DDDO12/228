@@ -51,6 +51,22 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     if (ok) resetAddForm()
   }
 
+  function canSubmitAddStep() {
+    if (addStep === 0) return Boolean(name.trim())
+    if (addStep === 2 && unit === '吏곸젒?낅젰') return Boolean(customUnit.trim())
+    return true
+  }
+
+  function handleAddStepSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!canSubmitAddStep()) return
+    if (addStep < 3) {
+      setAddStep((step) => Math.min(3, step + 1) as AddStep)
+      return
+    }
+    void submitAdd()
+  }
+
   function openEdit(item: InventoryItem) {
     setEditingItem(item)
     setDraft({ ...item })
@@ -76,6 +92,11 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   function closeEdit() {
     setEditingItem(undefined)
     setDraft(undefined)
+  }
+
+  function handleEditSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    saveDraft()
   }
 
   return (
@@ -145,7 +166,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
       {addOpen && (
         <div className="modal-backdrop" onClick={resetAddForm}>
-          <section className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()}>
+          <form className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()} onSubmit={handleAddStepSubmit}>
             <header className="modal-header">
               <div>
                 <span>부식재고 입력</span>
@@ -210,24 +231,23 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 <button
                   className="primary-button"
                   disabled={(addStep === 0 && !name.trim()) || (addStep === 2 && unit === '직접입력' && !customUnit.trim())}
-                  onClick={() => setAddStep((step) => Math.min(3, step + 1) as AddStep)}
-                  type="button"
+                  type="submit"
                 >
                   다음
                 </button>
               ) : (
-                <button className="primary-button" onClick={() => void submitAdd()} type="button">
+                <button className="primary-button" type="submit">
                   <Save size={17} /> 저장
                 </button>
               )}
             </div>
-          </section>
+          </form>
         </div>
       )}
 
       {editingItem && draft && (
         <div className="modal-backdrop" onClick={closeEdit}>
-          <section className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()}>
+          <form className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()} onSubmit={handleEditSubmit}>
             <header className="modal-header">
               <div>
                 <span>부식재고 수정</span>
@@ -260,11 +280,11 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               <button className="ghost-button" onClick={closeEdit} type="button">
                 취소
               </button>
-              <button className="primary-button" onClick={saveDraft} type="button">
+              <button className="primary-button" type="submit">
                 <Save size={17} /> 저장
               </button>
             </div>
-          </section>
+          </form>
         </div>
       )}
     </div>

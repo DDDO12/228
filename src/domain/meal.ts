@@ -11,6 +11,6 @@ export const mealOrder: MealType[] = ['breakfast', 'lunch', 'dinner']
 export function suggestMealType(now = new Date()): MealType {
   const hour = now.getHours()
   if (hour < 10) return 'breakfast'
-  if (hour < 15) return 'lunch'
+  if (hour < 14) return 'lunch'
   return 'dinner'
 }

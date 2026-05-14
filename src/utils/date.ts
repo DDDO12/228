@@ -11,6 +11,12 @@ export function formatDisplayDate(value: string) {
   }).format(new Date(`${value}T00:00:00`))
 }
 
+export function formatCompactDate(value: string) {
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${year.slice(2)}-${month}-${day}`
+}
+
 export function formatTime(value?: string) {
   if (!value) return '-'
   return new Intl.DateTimeFormat('ko-KR', {

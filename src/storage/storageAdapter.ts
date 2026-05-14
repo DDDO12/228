@@ -1,12 +1,13 @@
 import type { AttendanceRecord } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
-import type { Division, Soldier } from '../domain/soldier'
+import type { Division, Section, Soldier } from '../domain/soldier'
 
 export interface AppBackup {
   version: number
   exportedAt: string
   divisions?: Division[]
+  sections?: Section[]
   inventoryItems?: InventoryItem[]
   memos?: DayMemo[]
   soldiers: Soldier[]
@@ -20,6 +21,8 @@ export interface StorageAdapter {
   saveInventoryItems(items: InventoryItem[]): Promise<void>
   getDivisions(): Promise<Division[]>
   saveDivisions(divisions: Division[]): Promise<void>
+  getSections(): Promise<Section[]>
+  saveSections(sections: Section[]): Promise<void>
   getSoldiers(): Promise<Soldier[]>
   saveSoldiers(soldiers: Soldier[]): Promise<void>
   getAttendanceRecords(): Promise<AttendanceRecord[]>

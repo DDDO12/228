@@ -7,12 +7,21 @@ export interface Division {
   updatedAt: string
 }
 
+export interface Section {
+  id: string
+  name: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface Soldier {
   id: string
   name: string
   category?: Category
   divisionId?: string
-  exceptionStatus?: 'leave' | 'dispatch' | 'duty' | 'etc'
+  section?: string
+  exceptionStatus?: 'leave' | 'dispatch' | 'duty' | 'mowing' | 'serving' | 'cooking' | 'etc'
+  exceptionStart?: string
   exceptionUntil?: string
   active: boolean
   note?: string

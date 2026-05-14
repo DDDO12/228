@@ -1,12 +1,13 @@
 import type { AttendanceRecord } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
-import type { Division, Soldier } from '../domain/soldier'
+import type { Division, Section, Soldier } from '../domain/soldier'
 import type { AppBackup, StorageAdapter } from './storageAdapter'
 
 const MEMOS_KEY = 'meal-check:memos'
 const INVENTORY_KEY = 'meal-check:inventory-items'
 const DIVISIONS_KEY = 'meal-check:divisions'
+const SECTIONS_KEY = 'meal-check:sections'
 const SOLDIERS_KEY = 'meal-check:soldiers'
 const RECORDS_KEY = 'meal-check:attendance-records'
 
@@ -43,6 +44,12 @@ export const localStore: StorageAdapter = {
   async saveDivisions(divisions) {
     writeJson(DIVISIONS_KEY, divisions)
   },
+  async getSections() {
+    return readJson<Section[]>(SECTIONS_KEY, [])
+  },
+  async saveSections(sections) {
+    writeJson(SECTIONS_KEY, sections)
+  },
   async getSoldiers() {
     return readJson<Soldier[]>(SOLDIERS_KEY, [])
   },
@@ -60,6 +67,7 @@ export const localStore: StorageAdapter = {
       version: 1,
       exportedAt: new Date().toISOString(),
       divisions: await this.getDivisions(),
+      sections: await this.getSections(),
       inventoryItems: await this.getInventoryItems(),
       memos: await this.getMemos(),
       soldiers: await this.getSoldiers(),
@@ -70,6 +78,7 @@ export const localStore: StorageAdapter = {
     if (backup.memos) writeJson(MEMOS_KEY, backup.memos)
     if (backup.inventoryItems) writeJson(INVENTORY_KEY, backup.inventoryItems)
     if (backup.divisions) writeJson(DIVISIONS_KEY, backup.divisions)
+    if (backup.sections) writeJson(SECTIONS_KEY, backup.sections)
     writeJson(SOLDIERS_KEY, backup.soldiers)
     writeJson(RECORDS_KEY, backup.attendanceRecords)
   },

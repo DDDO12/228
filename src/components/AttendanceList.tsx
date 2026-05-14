@@ -6,18 +6,26 @@ import {
   isAteStatus,
   normalizeAttendanceStatus,
   type AttendanceStatus,
+  type ScheduledExceptionStatus,
 } from '../domain/attendance'
 import type { AttendanceItem, AttendanceRecord } from '../domain/attendance'
-import { formatTime, toDateInputValue } from '../utils/date'
+import { toDateInputValue } from '../utils/date'
 
 interface AttendanceListProps {
   divisionId: string | 'all'
   onlyActive: boolean
   query: string
   record: AttendanceRecord
+  section: string | 'all'
   showMissingOnly: boolean
   onSetStatus: (soldierId: string, status: AttendanceStatus) => void
-  onSetScheduledException: (soldierId: string, status: 'leave' | 'dispatch' | 'duty' | 'etc', until: string) => void
+  onSetScheduledException: (
+    soldierId: string,
+    status: ScheduledExceptionStatus,
+    start: string,
+    until: string,
+  ) => void
+  onClearScheduledException: (soldierId: string) => void
   onToggle: (soldierId: string) => void
 }
 
@@ -26,34 +34,49 @@ export function AttendanceList({
   onlyActive,
   query,
   record,
+  section,
   showMissingOnly,
   onSetStatus,
   onSetScheduledException,
+  onClearScheduledException,
   onToggle,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
-  const [leaveUntil, setLeaveUntil] = useState(toDateInputValue())
+  const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive'>('choices')
+  const [leaveStart, setLeaveStart] = useState(record.date || toDateInputValue())
+  const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const normalizedQuery = query.trim().toLowerCase()
   const items = record.records.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
+    if (section !== 'all' && (item.section ?? '') !== section) return false
     if (showMissingOnly && isAteStatus(status)) return false
     if (onlyActive && !isAteStatus(status)) return false
     if (
       normalizedQuery &&
       !item.name.toLowerCase().includes(normalizedQuery) &&
-      !item.divisionName.toLowerCase().includes(normalizedQuery)
+      !item.divisionName.toLowerCase().includes(normalizedQuery) &&
+      !item.section?.toLowerCase().includes(normalizedQuery)
     ) {
       return false
     }
     return true
+  }).sort((a, b) => {
+    const statusA = normalizeAttendanceStatus(a.status, a.ate)
+    const statusB = normalizeAttendanceStatus(b.status, b.ate)
+    const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
+    return rank(statusA) - rank(statusB) || a.divisionName.localeCompare(b.divisionName) || a.name.localeCompare(b.name)
   })
+  const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
+  const exceptionCount = items.filter((item) => {
+    const status = normalizeAttendanceStatus(item.status, item.ate)
+    return status !== 'ate' && status !== 'missing'
+  }).length
 
   function applyStatus(status: AttendanceStatus) {
     if (!selectedItem) return
     if (status === 'leave') {
-      onSetScheduledException(selectedItem.soldierId, status, leaveUntil)
-      setSelectedItem(undefined)
+      setPickerMode('leave')
       return
     }
     onSetStatus(selectedItem.soldierId, status)
@@ -61,8 +84,33 @@ export function AttendanceList({
   }
 
   function openPicker(item: AttendanceItem) {
-    setLeaveUntil(item.exceptionUntil ?? toDateInputValue())
+    const start = item.exceptionStart ?? record.date ?? toDateInputValue()
+    setLeaveStart(start)
+    setLeaveUntil(item.exceptionUntil ?? start)
+    setPickerMode(item.status === 'leave' && item.exceptionUntil ? 'leaveActive' : 'choices')
     setSelectedItem(item)
+  }
+
+  function closePicker() {
+    setSelectedItem(undefined)
+    setPickerMode('choices')
+  }
+
+  function updateLeaveStart(value: string) {
+    setLeaveStart(value)
+    if (leaveUntil < value) setLeaveUntil(value)
+  }
+
+  function saveLeave() {
+    if (!selectedItem) return
+    onSetScheduledException(selectedItem.soldierId, 'leave', leaveStart, leaveUntil < leaveStart ? leaveStart : leaveUntil)
+    closePicker()
+  }
+
+  function clearLeave() {
+    if (!selectedItem) return
+    onClearScheduledException(selectedItem.soldierId)
+    closePicker()
   }
 
   if (items.length === 0) {
@@ -71,24 +119,50 @@ export function AttendanceList({
 
   return (
     <>
+      <section className="attendance-summary-strip" aria-label="체크 현황">
+        <div>
+          <span>취식</span>
+          <strong>{ateCount}명</strong>
+        </div>
+        <div>
+          <span>열외</span>
+          <strong>{exceptionCount}명</strong>
+        </div>
+        <div>
+          <span>현재원</span>
+          <strong>{items.length}명</strong>
+        </div>
+      </section>
       <div className="attendance-grid">
         {items.map((item) => {
           const status = normalizeAttendanceStatus(item.status, item.ate)
+          const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
+          const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '열외' : attendanceStatusLabels[status]
           return (
             <article className={`attendance-tile status-${status}`} key={item.soldierId}>
               <button className="attendance-main-button" onClick={() => onToggle(item.soldierId)} type="button">
                 <span className="checkmark">{status === 'ate' && <Check size={18} />}</span>
                 <span className="attendance-person">
-                  <strong>{item.name}</strong>
+                  <span className="attendance-name-line">
+                    <strong>{item.name}</strong>
+                    <em>{item.divisionName}</em>
+                  </span>
                   <small>
-                    {item.divisionName} · {item.exceptionUntil ? `${item.exceptionUntil}까지` : formatTime(item.updatedAt)}
+                    {item.section || '분과 미지정'}
+                    {item.exceptionUntil ? ` · ${item.exceptionStart ?? record.date}~${item.exceptionUntil}` : ''}
                   </small>
                 </span>
               </button>
               <div className="attendance-tile-footer">
-                <span className={`status-pill status-pill-${status}`}>{attendanceStatusLabels[status]}</span>
-                <button className="exception-open-button" onClick={() => openPicker(item)} type="button">
-                  열외 <ChevronRight size={15} />
+                <button className={`status-action status-action-${status}`} onClick={() => onToggle(item.soldierId)} type="button">
+                  {status === 'ate' ? '취식' : status === 'missing' ? '미취식' : '취식'}
+                </button>
+                <button
+                  className={`exception-open-button ${isLeaveActive ? 'leave-active-button' : ''}`}
+                  onClick={() => openPicker(item)}
+                  type="button"
+                >
+                  {exceptionLabel} <ChevronRight size={15} />
                 </button>
               </div>
             </article>
@@ -97,37 +171,70 @@ export function AttendanceList({
       </div>
 
       {selectedItem && (
-        <div className="exception-picker-backdrop" onClick={() => setSelectedItem(undefined)}>
+        <div className="exception-picker-backdrop" onClick={closePicker}>
           <section className="exception-picker" onClick={(event) => event.stopPropagation()}>
             <header>
               <div>
-                <span>열외 설정</span>
+                <span>
+                  {pickerMode === 'leave'
+                    ? '휴가 기간 설정'
+                    : pickerMode === 'leaveActive'
+                      ? '휴가 일정 조정'
+                      : '열외 설정'}
+                </span>
                 <h2>{selectedItem.name}</h2>
               </div>
-              <button aria-label="닫기" className="icon-button" onClick={() => setSelectedItem(undefined)} type="button">
+              <button aria-label="닫기" className="icon-button" onClick={closePicker} type="button">
                 <X size={20} />
               </button>
             </header>
-            <div className="exception-grid">
-              <button className="status-choice-ate" onClick={() => applyStatus('ate')} type="button">
-                <strong>취식</strong>
-                <span>식사 완료</span>
-              </button>
-              <button className="status-choice-missing" onClick={() => applyStatus('missing')} type="button">
-                <strong>미취식</strong>
-                <span>단순 미취식</span>
-              </button>
-              {exceptionStatuses.map((status) => (
-                <button className={status === 'leave' ? 'status-choice-leave' : ''} key={status} onClick={() => applyStatus(status)} type="button">
-                  <strong>{attendanceStatusLabels[status]}</strong>
-                  <span>{status === 'leave' ? '기간 유지' : '열외 처리'}</span>
+            {pickerMode === 'choices' ? (
+              <div className="exception-grid">
+                {exceptionStatuses.map((status) => (
+                  <button
+                    className={status === 'leave' ? 'status-choice-leave' : ''}
+                    key={status}
+                    onClick={() => applyStatus(status)}
+                    type="button"
+                  >
+                    <strong>{attendanceStatusLabels[status]}</strong>
+                    <span>{status === 'leave' ? '기간 입력' : '열외 처리'}</span>
+                  </button>
+                ))}
+              </div>
+            ) : pickerMode === 'leaveActive' ? (
+              <div className="leave-date-form">
+                <div className="leave-summary">
+                  <strong>현재 휴가 중</strong>
+                  <span>{leaveStart} ~ {leaveUntil}</span>
+                </div>
+                <button className="primary-button" onClick={() => setPickerMode('leave')} type="button">
+                  휴가 일정 조정
                 </button>
-              ))}
-            </div>
-            <label className="leave-date-control">
-              <span>휴가 유지 기간</span>
-              <input min={toDateInputValue()} onChange={(event) => setLeaveUntil(event.target.value)} type="date" value={leaveUntil} />
-            </label>
+                <button className="danger-button" onClick={clearLeave} type="button">
+                  휴가 일정 삭제
+                </button>
+              </div>
+            ) : (
+              <div className="leave-date-form">
+                <label className="leave-date-control">
+                  <span>휴가 시작</span>
+                  <input onChange={(event) => updateLeaveStart(event.target.value)} type="date" value={leaveStart} />
+                </label>
+                <label className="leave-date-control">
+                  <span>휴가 종료</span>
+                  <input min={leaveStart} onChange={(event) => setLeaveUntil(event.target.value)} type="date" value={leaveUntil} />
+                </label>
+                <div className="modal-actions">
+                  <button className="ghost-button" onClick={() => setPickerMode('choices')} type="button">
+                    이전
+                  </button>
+                  <button className="primary-button" onClick={saveLeave} type="button">
+                    적용
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         </div>
       )}
