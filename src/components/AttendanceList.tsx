@@ -68,6 +68,7 @@ export function AttendanceList({
     return rank(statusA) - rank(statusB) || a.divisionName.localeCompare(b.divisionName) || a.name.localeCompare(b.name)
   })
   const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
+  const missingCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
   const exceptionCount = items.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
@@ -123,6 +124,10 @@ export function AttendanceList({
         <div>
           <span>취식</span>
           <strong>{ateCount}명</strong>
+        </div>
+        <div>
+          <span>미취식</span>
+          <strong>{missingCount}명</strong>
         </div>
         <div>
           <span>근무</span>
