@@ -366,8 +366,32 @@ main {
   text-align: right;
 }
 
+.work-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.work-filter-row button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 11px;
+  background: var(--color-control);
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.work-filter-row button.active {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .division-progress-list,
-.compact-list {
+.compact-list,
+.work-group-list {
   display: grid;
   gap: 8px;
 }
@@ -378,6 +402,26 @@ main {
   border-radius: 8px;
   padding: 12px;
   background: var(--color-control);
+}
+
+.work-group-list article {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--color-control);
+}
+
+.work-group-list header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.work-group-list header span {
+  color: var(--color-muted);
+  font-size: 13px;
 }
 
 .division-progress-list article > div:first-child,

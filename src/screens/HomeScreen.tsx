@@ -1,17 +1,19 @@
 import { AlertTriangle, CheckCircle2, Package } from 'lucide-react'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import type { AppState } from '../app/appState'
 import breakfastHero from '../assets/meal-breakfast-hero.webp'
 import dinnerHero from '../assets/meal-dinner-hero.webp'
 import lunchHero from '../assets/meal-lunch-hero.webp'
 import {
   attendanceStatusLabels,
+  exceptionStatuses,
   isAteStatus,
   normalizeAttendanceStatus,
   syncAttendanceRecord,
   type AttendanceItem,
   type AttendanceRecord,
   type AttendanceStatus,
+  type ScheduledExceptionStatus,
 } from '../domain/attendance'
 import { isLowStock } from '../domain/inventory'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
@@ -53,6 +55,7 @@ function summarizeItems(items: AttendanceItem[]) {
 }
 
 export function HomeScreen({ app }: { app: AppState }) {
+  const [workStatusFilter, setWorkStatusFilter] = useState<ScheduledExceptionStatus | 'all'>('all')
   const recordsByMeal: Array<AttendanceRecord | undefined> = mealOrder.map((meal) => {
     const stored = app.attendanceRecords.find((record) => record.date === app.date && record.meal === meal)
     return stored && stored.records.length > 0 ? syncAttendanceRecord(stored, app.soldiers, app.divisions) : undefined
@@ -61,19 +64,34 @@ export function HomeScreen({ app }: { app: AppState }) {
   const selectedDateItems = selectedDateRecords.flatMap((record) => record.records)
   const hasDateRecords = selectedDateRecords.length > 0
   const lowStockItems = app.inventoryItems.filter(isLowStock)
-  const exceptionItems = selectedDateItems.filter((item) => {
-    const status = normalizeAttendanceStatus(item.status, item.ate)
-    return status !== 'ate' && status !== 'missing'
-  })
 
   const mealRecords = mealOrder.map((meal, index) => ({
     meal,
     record: recordsByMeal[index],
   })) as Array<{ meal: MealType; record?: AttendanceRecord }>
   const currentMealRecord = mealRecords.find(({ meal }) => meal === app.meal)?.record
+  const currentMealItems = currentMealRecord?.records ?? []
   const currentMealSummary = summarizeItems(currentMealRecord?.records ?? [])
   const currentMealProgress =
     currentMealSummary.total > 0 ? Math.round((currentMealSummary.completed / currentMealSummary.total) * 100) : 0
+  const workItems = currentMealItems.filter((item) => {
+    const status = normalizeAttendanceStatus(item.status, item.ate)
+    return status !== 'ate' && status !== 'missing'
+  })
+  const filteredWorkItems =
+    workStatusFilter === 'all'
+      ? workItems
+      : workItems.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === workStatusFilter)
+  const workItemsByDivision = app.divisions
+    .map((division) => ({
+      divisionName: division.name,
+      items: filteredWorkItems.filter((item) => item.divisionId === division.id),
+    }))
+    .filter((group) => group.items.length > 0)
+  const unassignedWorkItems = filteredWorkItems.filter((item) => !item.divisionId)
+  if (unassignedWorkItems.length > 0) {
+    workItemsByDivision.push({ divisionName: '포대 미지정', items: unassignedWorkItems })
+  }
 
   return (
     <div className="stack">
@@ -218,28 +236,53 @@ export function HomeScreen({ app }: { app: AppState }) {
       <section className="panel">
         <div className="panel-title-row">
           <h2>근무자</h2>
-          <small>휴가 · 파견 · 예초 · 배식 · 취사</small>
+          <small>{mealLabels[app.meal]} 기준</small>
         </div>
-        {exceptionItems.length > 0 ? (
-          <div className="compact-list">
-            {exceptionItems.map((item) => {
-              const status = normalizeAttendanceStatus(item.status, item.ate)
-              return (
-                <div key={`${item.soldierId}-${item.updatedAt}`}>
-                  <span>
-                    {item.divisionName} · {item.section ? `${item.section} · ` : ''}
-                    {item.name}
-                  </span>
-                  <strong>
-                    {attendanceStatusLabels[status]}
-                    {item.exceptionUntil ? ` ${item.exceptionStart ?? app.date}~${item.exceptionUntil}` : ''}
-                  </strong>
+        <div className="work-filter-row">
+          <button className={workStatusFilter === 'all' ? 'active' : ''} onClick={() => setWorkStatusFilter('all')} type="button">
+            전체 {workItems.length}
+          </button>
+          {exceptionStatuses.map((status) => (
+            <button
+              className={workStatusFilter === status ? 'active' : ''}
+              key={status}
+              onClick={() => setWorkStatusFilter(status)}
+              type="button"
+            >
+              {attendanceStatusLabels[status]} {workItems.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status).length}
+            </button>
+          ))}
+        </div>
+        {filteredWorkItems.length > 0 ? (
+          <div className="work-group-list">
+            {workItemsByDivision.map((group) => (
+              <article key={group.divisionName}>
+                <header>
+                  <strong>{group.divisionName}</strong>
+                  <span>{group.items.length}명</span>
+                </header>
+                <div className="compact-list">
+                  {group.items.map((item) => {
+                    const status = normalizeAttendanceStatus(item.status, item.ate)
+                    return (
+                      <div key={`${item.soldierId}-${status}-${item.updatedAt}`}>
+                        <span>
+                          {item.section ? `${item.section} · ` : ''}
+                          {item.name}
+                        </span>
+                        <strong>
+                          {attendanceStatusLabels[status]}
+                          {item.exceptionUntil ? ` ${item.exceptionStart ?? app.date}~${item.exceptionUntil}` : ''}
+                        </strong>
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
+              </article>
+            ))}
           </div>
         ) : (
-          <div className="empty-inline">선택 날짜에 등록된 근무자가 없습니다.</div>
+          <div className="empty-inline">선택 조건에 맞는 근무자가 없습니다.</div>
         )}
       </section>
 
