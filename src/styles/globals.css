@@ -274,6 +274,7 @@ main {
 .home-status-grid span {
   color: var(--color-muted);
   font-size: 13px;
+  line-height: 1.45;
 }
 
 .panel-title-row {
@@ -315,6 +316,21 @@ main {
 
 .status-overview strong {
   font-size: 20px;
+}
+
+.meal-status-breakdown {
+  display: grid;
+  gap: 10px;
+}
+
+.meal-status-breakdown article {
+  display: grid;
+  gap: 8px;
+}
+
+.meal-status-breakdown h3 {
+  margin: 0;
+  font-size: 15px;
 }
 
 .meal-record-list {

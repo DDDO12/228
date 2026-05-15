@@ -1,9 +1,8 @@
-import { AlertTriangle, CheckCircle2, Package, ShieldAlert, Users } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, Package } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import type { AppState } from '../app/appState'
 import {
   attendanceStatusLabels,
-  attendanceStatuses,
   isAteStatus,
   normalizeAttendanceStatus,
   syncAttendanceRecord,
@@ -23,8 +22,25 @@ function countRecord(record: AttendanceRecord, status: AttendanceStatus) {
   return countItems(record.records, status)
 }
 
+function countExceptions(items: AttendanceItem[]) {
+  return items.filter((item) => {
+    const status = normalizeAttendanceStatus(item.status, item.ate)
+    return status !== 'ate' && status !== 'missing'
+  }).length
+}
+
 function countCompleted(items: AttendanceItem[]) {
   return items.filter((item) => isAteStatus(item.status, item.ate)).length
+}
+
+function summarizeItems(items: AttendanceItem[]) {
+  return {
+    ate: countItems(items, 'ate'),
+    completed: countCompleted(items),
+    excluded: countExceptions(items),
+    missing: countItems(items, 'missing'),
+    total: items.length,
+  }
 }
 
 export function HomeScreen({ app }: { app: AppState }) {
@@ -35,15 +51,8 @@ export function HomeScreen({ app }: { app: AppState }) {
   const selectedDateRecords = recordsByMeal.filter((record): record is AttendanceRecord => Boolean(record))
   const selectedDateItems = selectedDateRecords.flatMap((record) => record.records)
   const hasDateRecords = selectedDateRecords.length > 0
-  const total = selectedDateItems.length
-  const ate = countItems(selectedDateItems, 'ate')
-  const missing = countItems(selectedDateItems, 'missing')
-  const excluded = selectedDateItems.filter((item) => {
-    const status = normalizeAttendanceStatus(item.status, item.ate)
-    return status !== 'ate' && status !== 'missing'
-  }).length
-  const completed = countCompleted(selectedDateItems)
-  const progress = total > 0 ? Math.round((completed / total) * 100) : 0
+  const daySummary = summarizeItems(selectedDateItems)
+  const progress = daySummary.total > 0 ? Math.round((daySummary.completed / daySummary.total) * 100) : 0
   const lowStockItems = app.inventoryItems.filter(isLowStock)
   const exceptionItems = selectedDateItems.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -54,6 +63,13 @@ export function HomeScreen({ app }: { app: AppState }) {
     meal,
     record: recordsByMeal[index],
   })) as Array<{ meal: MealType; record?: AttendanceRecord }>
+  const mealProgressText = mealRecords
+    .map(({ meal, record }) => {
+      if (!record) return `${mealLabels[meal]} 기록 없음`
+      const summary = summarizeItems(record.records)
+      return `${mealLabels[meal]} ${summary.completed}/${summary.total}`
+    })
+    .join(' · ')
 
   return (
     <div className="stack">
@@ -61,13 +77,11 @@ export function HomeScreen({ app }: { app: AppState }) {
         <div>
           <span>{formatCompactDate(app.date)} 전체 기록</span>
           <h2>{hasDateRecords ? `${progress}% 완료` : '기록 없음'}</h2>
-          <p>
-            취식 {ate}명 · 미취식 {missing}명 · 열외 {excluded}명
-          </p>
+          <p>{mealProgressText}</p>
         </div>
         <div className="home-ring" style={{ '--progress': `${progress}%` } as CSSProperties & Record<'--progress', string>}>
-          <strong>{completed}</strong>
-          <span>/{total}</span>
+          <strong>{progress}%</strong>
+          <span>완료</span>
         </div>
       </section>
 
@@ -78,21 +92,18 @@ export function HomeScreen({ app }: { app: AppState }) {
       )}
 
       <section className="home-status-grid">
-        <article>
-          <CheckCircle2 size={20} />
-          <strong>{ate}</strong>
-          <span>취식</span>
-        </article>
-        <article>
-          <Users size={20} />
-          <strong>{missing}</strong>
-          <span>미취식</span>
-        </article>
-        <article>
-          <ShieldAlert size={20} />
-          <strong>{excluded}</strong>
-          <span>열외</span>
-        </article>
+        {mealRecords.map(({ meal, record }) => {
+          const summary = summarizeItems(record?.records ?? [])
+          return (
+            <article key={meal}>
+              <CheckCircle2 size={20} />
+              <strong>{record ? `${summary.completed}/${summary.total}` : '-'}</strong>
+              <span>
+                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 열외 {summary.excluded}
+              </span>
+            </article>
+          )
+        })}
         <article className={lowStockItems.length > 0 ? 'warning' : ''}>
           <Package size={20} />
           <strong>{lowStockItems.length}</strong>
@@ -127,16 +138,36 @@ export function HomeScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>상태별 현황</h2>
+          <h2>식사별 상태 현황</h2>
           <small>마지막 저장 {formatTime(app.lastSavedAt)}</small>
         </div>
-        <div className="status-overview">
-          {attendanceStatuses.map((status) => (
-            <div key={status}>
-              <span>{attendanceStatusLabels[status]}</span>
-              <strong>{countItems(selectedDateItems, status)}</strong>
-            </div>
-          ))}
+        <div className="meal-status-breakdown">
+          {mealRecords.map(({ meal, record }) => {
+            const summary = summarizeItems(record?.records ?? [])
+            return (
+              <article key={meal}>
+                <h3>{mealLabels[meal]}</h3>
+                <div className="status-overview">
+                  <div>
+                    <span>총계</span>
+                    <strong>{summary.total}</strong>
+                  </div>
+                  <div>
+                    <span>취식</span>
+                    <strong>{summary.ate}</strong>
+                  </div>
+                  <div>
+                    <span>미취식</span>
+                    <strong>{summary.missing}</strong>
+                  </div>
+                  <div>
+                    <span>열외</span>
+                    <strong>{summary.excluded}</strong>
+                  </div>
+                </div>
+              </article>
+            )
+          })}
         </div>
       </section>
 
