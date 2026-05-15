@@ -217,7 +217,7 @@ export function useAppState() {
         await persistSoldiers(nextSoldiers)
         const nextRecords = mealOrder.flatMap((itemMeal) => {
           const existing = attendanceRecords.find((record) => record.date === currentRecord.date && record.meal === itemMeal)
-          if (!existing && itemMeal !== currentRecord.meal) return []
+          if (status !== 'cooking' && !existing && itemMeal !== currentRecord.meal) return []
           const base = existing
             ? syncAttendanceRecord(existing, nextSoldiers, divisions)
             : createAttendanceRecord(currentRecord.date, itemMeal, nextSoldiers, divisions)
