@@ -215,12 +215,13 @@ export function useAppState() {
             : soldier,
         )
         await persistSoldiers(nextSoldiers)
-        const nextRecords = mealOrder.map((itemMeal) => {
+        const nextRecords = mealOrder.flatMap((itemMeal) => {
           const existing = attendanceRecords.find((record) => record.date === currentRecord.date && record.meal === itemMeal)
+          if (!existing && itemMeal !== currentRecord.meal) return []
           const base = existing
             ? syncAttendanceRecord(existing, nextSoldiers, divisions)
             : createAttendanceRecord(currentRecord.date, itemMeal, nextSoldiers, divisions)
-          return {
+          return [{
             ...base,
             records: base.records.map((item) =>
               item.soldierId === soldierId
@@ -235,7 +236,7 @@ export function useAppState() {
                 : item,
             ),
             updatedAt: now,
-          }
+          }]
         })
         const untouchedRecords = attendanceRecords.filter((record) => record.date !== currentRecord.date)
         await persistRecords([...untouchedRecords, ...nextRecords].sort((a, b) => a.id.localeCompare(b.id)))
