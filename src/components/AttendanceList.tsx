@@ -45,37 +45,41 @@ export function AttendanceList({
   const [leaveStart, setLeaveStart] = useState(record.date || toDateInputValue())
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const [missingReason, setMissingReason] = useState<MissingReason>('work')
+  const [bulkMissingReason, setBulkMissingReason] = useState<MissingReason>('work')
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([])
   const normalizedQuery = query.trim().toLowerCase()
-  const items = record.records.filter((item) => {
-    const status = normalizeAttendanceStatus(item.status, item.ate)
-    if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
-    if (section !== 'all' && (item.section ?? '') !== section) return false
-    if (statusFilter === 'ate' && status !== 'ate') return false
-    if (statusFilter === 'missing' && status !== 'missing') return false
-    if (statusFilter === 'work' && (status === 'ate' || status === 'missing')) return false
-    if (
-      normalizedQuery &&
-      !item.name.toLowerCase().includes(normalizedQuery) &&
-      !item.divisionName.toLowerCase().includes(normalizedQuery) &&
-      !item.section?.toLowerCase().includes(normalizedQuery)
-    ) {
-      return false
-    }
-    return true
-  }).sort((a, b) => {
-    const statusA = normalizeAttendanceStatus(a.status, a.ate)
-    const statusB = normalizeAttendanceStatus(b.status, b.ate)
-    const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
-    const sectionA = a.section?.trim() ?? ''
-    const sectionB = b.section?.trim() ?? ''
-    const sectionRank = Number(!sectionA) - Number(!sectionB)
-    return (
-      rank(statusA) - rank(statusB) ||
-      sectionRank ||
-      sectionA.localeCompare(sectionB, 'ko') ||
-      a.name.localeCompare(b.name, 'ko')
-    )
-  })
+  const items = record.records
+    .filter((item) => {
+      const status = normalizeAttendanceStatus(item.status, item.ate)
+      if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
+      if (section !== 'all' && (item.section ?? '') !== section) return false
+      if (statusFilter === 'ate' && status !== 'ate') return false
+      if (statusFilter === 'missing' && status !== 'missing') return false
+      if (statusFilter === 'work' && (status === 'ate' || status === 'missing')) return false
+      if (
+        normalizedQuery &&
+        !item.name.toLowerCase().includes(normalizedQuery) &&
+        !item.divisionName.toLowerCase().includes(normalizedQuery) &&
+        !item.section?.toLowerCase().includes(normalizedQuery)
+      ) {
+        return false
+      }
+      return true
+    })
+    .sort((a, b) => {
+      const statusA = normalizeAttendanceStatus(a.status, a.ate)
+      const statusB = normalizeAttendanceStatus(b.status, b.ate)
+      const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
+      const sectionA = a.section?.trim() ?? ''
+      const sectionB = b.section?.trim() ?? ''
+      const sectionRank = Number(!sectionA) - Number(!sectionB)
+      return (
+        rank(statusA) - rank(statusB) ||
+        sectionRank ||
+        sectionA.localeCompare(sectionB, 'ko') ||
+        a.name.localeCompare(b.name, 'ko')
+      )
+    })
   const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
   const missingCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
   const exceptionCount = items.filter((item) => {
@@ -148,6 +152,21 @@ export function AttendanceList({
     closePicker()
   }
 
+  function toggleBulkSelection(item: AttendanceItem) {
+    const status = normalizeAttendanceStatus(item.status, item.ate)
+    if (status !== 'ate' && status !== 'missing') return
+    setBulkSelectedIds((selectedIds) =>
+      selectedIds.includes(item.soldierId)
+        ? selectedIds.filter((id) => id !== item.soldierId)
+        : [...selectedIds, item.soldierId],
+    )
+  }
+
+  function applyBulkMissingReason() {
+    bulkSelectedIds.forEach((soldierId) => onSetStatus(soldierId, 'missing', bulkMissingReason))
+    setBulkSelectedIds([])
+  }
+
   if (items.length === 0) {
     return <div className="empty-state">조건에 맞는 인원이 없습니다.</div>
   }
@@ -184,10 +203,18 @@ export function AttendanceList({
                 const status = normalizeAttendanceStatus(item.status, item.ate)
                 const isCompleted = isAteStatus(item.status, item.ate)
                 const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
-                const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무/기타' : attendanceStatusLabels[status]
+                const isBulkSelected = bulkSelectedIds.includes(item.soldierId)
+                const exceptionLabel = isLeaveActive
+                  ? '휴가 중'
+                  : status === 'ate' || status === 'missing'
+                    ? '근무/기타'
+                    : attendanceStatusLabels[status]
                 return (
-                  <article className={`attendance-tile status-${status}`} key={item.soldierId}>
-                    <div className="attendance-main-button">
+                  <article
+                    className={`attendance-tile status-${status} ${isBulkSelected ? 'bulk-selected' : ''}`}
+                    key={item.soldierId}
+                  >
+                    <button className="attendance-main-button" onClick={() => toggleBulkSelection(item)} type="button">
                       <span className="checkmark">{isCompleted && <Check size={18} />}</span>
                       <span className="attendance-person">
                         <span className="attendance-name-line">
@@ -200,7 +227,7 @@ export function AttendanceList({
                           {status === 'missing' && item.missingReason ? ` · ${missingReasonLabels[item.missingReason]}` : ''}
                         </small>
                       </span>
-                    </div>
+                    </button>
                     <div className="attendance-tile-footer">
                       <button className={`status-action status-action-${status}`} onClick={() => openMissingReason(item)} type="button">
                         {isCompleted ? '취식' : '미취식'}
@@ -220,6 +247,35 @@ export function AttendanceList({
           </section>
         ))}
       </div>
+
+      {bulkSelectedIds.length > 0 && (
+        <section className="bulk-missing-panel" aria-label="선택 인원 미취식 사유">
+          <div className="bulk-missing-title">
+            <strong>{bulkSelectedIds.length}명 선택</strong>
+            <span>이름을 다시 누르면 선택 해제</span>
+          </div>
+          <div className="missing-reason-grid">
+            {missingReasons.map((reason) => (
+              <button
+                className={bulkMissingReason === reason ? 'active' : ''}
+                key={reason}
+                onClick={() => setBulkMissingReason(reason)}
+                type="button"
+              >
+                {missingReasonLabels[reason]}
+              </button>
+            ))}
+          </div>
+          <div className="modal-actions">
+            <button className="ghost-button" onClick={() => setBulkSelectedIds([])} type="button">
+              선택 해제
+            </button>
+            <button className="primary-button" onClick={applyBulkMissingReason} type="button">
+              미취식 적용
+            </button>
+          </div>
+        </section>
+      )}
 
       {selectedItem && (
         <div className="exception-picker-backdrop" onClick={closePicker}>
@@ -282,7 +338,9 @@ export function AttendanceList({
               <div className="leave-date-form">
                 <div className="leave-summary">
                   <strong>현재 휴가 중</strong>
-                  <span>{leaveStart} ~ {leaveUntil}</span>
+                  <span>
+                    {leaveStart} ~ {leaveUntil}
+                  </span>
                 </div>
                 <button className="primary-button" onClick={() => setPickerMode('leave')} type="button">
                   휴가 일정 조정

@@ -1027,6 +1027,15 @@ textarea {
   background: var(--color-danger-soft);
 }
 
+.attendance-tile.bulk-selected {
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.14), var(--shadow-panel);
+}
+
+.attendance-tile.bulk-selected .checkmark {
+  background: var(--color-info);
+}
+
 .attendance-tile.status-leave {
   border-color: #bfdbfe;
   background: #eff6ff;
@@ -1385,6 +1394,42 @@ textarea {
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+.bulk-missing-panel {
+  position: fixed;
+  right: 10px;
+  bottom: calc(78px + env(safe-area-inset-bottom));
+  left: 10px;
+  z-index: 45;
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+  margin: 0 auto;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-modal);
+  backdrop-filter: blur(16px);
+}
+
+.bulk-missing-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bulk-missing-title strong {
+  font-family: var(--font-display);
+  font-size: 17px;
+}
+
+.bulk-missing-title span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .empty-state {
