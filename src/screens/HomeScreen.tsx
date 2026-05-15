@@ -1,4 +1,4 @@
-import { AlertTriangle, CheckCircle2, Package } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useState, type CSSProperties } from 'react'
 import type { AppState } from '../app/appState'
 import breakfastHero from '../assets/meal-breakfast-hero.webp'
@@ -125,26 +125,6 @@ export function HomeScreen({ app }: { app: AppState }) {
           선택한 날짜에 저장된 취식 기록이 없습니다. 취식체크에서 해당 날짜를 체크하면 홈에 반영됩니다.
         </section>
       )}
-
-      <section className="home-status-grid">
-        {mealRecords.map(({ meal, record }) => {
-          const summary = summarizeItems(record?.records ?? [])
-          return (
-            <article key={meal}>
-              <CheckCircle2 size={20} />
-              <strong>{record ? `${summary.completed}/${summary.total}` : '-'}</strong>
-              <span>
-                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 근무/기타 {summary.excluded}
-              </span>
-            </article>
-          )
-        })}
-        <article className={lowStockItems.length > 0 ? 'warning' : ''}>
-          <Package size={20} />
-          <strong>{lowStockItems.length}</strong>
-          <span>재고주의</span>
-        </article>
-      </section>
 
       <section className="panel">
         <div className="panel-title-row">

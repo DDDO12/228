@@ -259,36 +259,6 @@ main {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.home-status-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
-}
-
-.home-status-grid article {
-  display: grid;
-  gap: 6px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 14px;
-  background: var(--color-surface);
-}
-
-.home-status-grid article.warning {
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-soft);
-}
-
-.home-status-grid strong {
-  font-size: 26px;
-}
-
-.home-status-grid span {
-  color: var(--color-muted);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
 .panel-title-row {
   display: flex;
   align-items: baseline;
@@ -1894,10 +1864,6 @@ textarea {
   .home-ring {
     width: 88px;
     height: 88px;
-  }
-
-  .home-status-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .status-overview {
