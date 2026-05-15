@@ -18,11 +18,13 @@
   --color-danger-soft: #fff3f3;
   --color-danger-border: rgba(185, 28, 28, 0.18);
   --color-white: #ffffff;
+  --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Segoe UI Variable Display", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --shadow-panel: 0 8px 24px rgba(31, 41, 51, 0.05);
   --shadow-modal: 0 24px 70px rgba(31, 41, 51, 0.22);
   color: var(--color-text);
   background: var(--color-canvas);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -99,9 +101,23 @@ p {
   margin: 0;
 }
 
+h1,
+h2,
+h3,
+.home-ring strong,
+.metric-grid strong,
+.inventory-summary strong,
+.stock-amount strong,
+.attendance-summary-strip strong,
+.status-overview strong {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
 .app-header h1 {
   font-size: 28px;
   line-height: 1.1;
+  font-weight: 820;
 }
 
 .header-actions {
@@ -230,6 +246,8 @@ main {
   margin-top: 8px;
   color: #ffffff;
   font-size: 38px;
+  font-weight: 780;
+  line-height: 1.08;
 }
 
 .home-hero p {
@@ -270,6 +288,7 @@ main {
 .panel-title-row h2 {
   margin: 0;
   min-width: 0;
+  font-weight: 760;
 }
 
 .panel-title-row small {
@@ -336,65 +355,52 @@ main {
   text-align: right;
 }
 
-.work-filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.work-filter-row button {
-  min-height: 36px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  padding: 0 11px;
-  background: var(--color-control);
-  color: var(--color-muted);
-  font-weight: 800;
-}
-
-.work-filter-row button.active {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.division-progress-list,
-.compact-list,
-.work-group-list {
+.compact-list {
   display: grid;
   gap: 8px;
 }
 
-.division-progress-list article {
+.work-dashboard {
   display: grid;
-  gap: 8px;
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--color-control);
-}
-
-.work-group-list article {
-  display: grid;
-  gap: 8px;
-  border-radius: 8px;
-  padding: 12px;
-  background: var(--color-control);
-}
-
-.work-group-list header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 12px;
 }
 
-.work-group-list header span {
-  color: var(--color-muted);
-  font-size: 13px;
+.work-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 178px;
+  gap: 10px;
+  align-items: end;
 }
 
-.division-progress-list article > div:first-child,
+.work-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.work-summary-cards article {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 11px 10px;
+  background: var(--color-control);
+  text-align: center;
+}
+
+.work-summary-cards span,
+.work-select-control span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.work-summary-cards strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
 .compact-list div {
   display: flex;
   align-items: center;
@@ -403,7 +409,6 @@ main {
   min-width: 0;
 }
 
-.division-progress-list span,
 .compact-list span {
   min-width: 0;
   color: var(--color-muted);
@@ -419,18 +424,120 @@ main {
   white-space: nowrap;
 }
 
-.progress-track {
-  overflow: hidden;
-  height: 8px;
-  border-radius: 999px;
-  background: var(--color-control-strong);
+.work-select-control {
+  display: grid;
+  gap: 6px;
 }
 
-.progress-track span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--color-primary);
+.work-select-control select {
+  min-height: 42px;
+  font-weight: 800;
+}
+
+.work-status-list {
+  display: grid;
+  gap: 9px;
+}
+
+.work-status-card {
+  display: grid;
+  gap: 9px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--color-surface);
+}
+
+.work-status-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.work-status-card header strong {
+  font-size: 16px;
+}
+
+.work-status-card header span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--color-control);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.work-person-list {
+  display: grid;
+  gap: 6px;
+}
+
+.work-person-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  border-radius: 7px;
+  padding: 9px 10px;
+  background: var(--color-control);
+}
+
+.work-person-row span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.work-person-row strong {
+  flex: 0 0 auto;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.work-status-card.status-leave {
+  border-color: var(--color-info-border);
+  background: var(--color-info-soft);
+}
+
+.work-status-card.status-cooking {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.work-status-card.status-serving {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+.work-status-card.status-duty,
+.work-status-card.status-dutySleep {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.work-status-card.status-medical {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.work-status-card.status-corporalCheckup {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.work-status-card.status-dispatch,
+.work-status-card.status-mowing,
+.work-status-card.status-etc {
+  border-color: #e5e7eb;
+  background: #f8fafc;
 }
 
 .empty-inline {
@@ -1935,6 +2042,10 @@ textarea {
   .home-ring {
     width: 88px;
     height: 88px;
+  }
+
+  .work-toolbar {
+    grid-template-columns: 1fr;
   }
 
   .status-overview {
