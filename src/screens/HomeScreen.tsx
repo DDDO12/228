@@ -110,7 +110,7 @@ export function HomeScreen({ app }: { app: AppState }) {
           </span>
           <h2>{currentMealRecord ? `${currentMealProgress}% 완료` : '기록 없음'}</h2>
           <p>
-            총계 {currentMealSummary.total}명 · 취식 {currentMealSummary.ate}명 · 미취식 {currentMealSummary.missing}명 · 근무{' '}
+            총계 {currentMealSummary.total}명 · 취식 {currentMealSummary.ate}명 · 미취식 {currentMealSummary.missing}명 · 근무/기타{' '}
             {currentMealSummary.excluded}명
           </p>
         </div>
@@ -134,7 +134,7 @@ export function HomeScreen({ app }: { app: AppState }) {
               <CheckCircle2 size={20} />
               <strong>{record ? `${summary.completed}/${summary.total}` : '-'}</strong>
               <span>
-                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 근무 {summary.excluded}
+                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 근무/기타 {summary.excluded}
               </span>
             </article>
           )
@@ -157,7 +157,7 @@ export function HomeScreen({ app }: { app: AppState }) {
               <strong>{mealLabels[meal]}</strong>
               {record ? (
                 <span>
-                  취식 {countRecord(record, 'ate')}명 · 미취식 {countRecord(record, 'missing')}명 · 근무{' '}
+                  취식 {countRecord(record, 'ate')}명 · 미취식 {countRecord(record, 'missing')}명 · 근무/기타{' '}
                   {record.records.filter((item) => {
                     const status = normalizeAttendanceStatus(item.status, item.ate)
                     return status !== 'ate' && status !== 'missing'
@@ -196,7 +196,7 @@ export function HomeScreen({ app }: { app: AppState }) {
                     <strong>{summary.missing}</strong>
                   </div>
                   <div>
-                    <span>근무</span>
+                    <span>근무/기타</span>
                     <strong>{summary.excluded}</strong>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export function HomeScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>근무자</h2>
+          <h2>근무/기타</h2>
           <small>{mealLabels[app.meal]} 기준</small>
         </div>
         <div className="work-filter-row">
@@ -282,7 +282,7 @@ export function HomeScreen({ app }: { app: AppState }) {
             ))}
           </div>
         ) : (
-          <div className="empty-inline">선택 조건에 맞는 근무자가 없습니다.</div>
+          <div className="empty-inline">선택 조건에 맞는 근무/기타 인원이 없습니다.</div>
         )}
       </section>
 

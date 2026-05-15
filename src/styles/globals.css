@@ -900,15 +900,42 @@ textarea {
   background: var(--color-danger-soft);
 }
 
-.attendance-tile.status-leave,
-.attendance-tile.status-dispatch,
+.attendance-tile.status-leave {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.attendance-tile.status-cooking {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.attendance-tile.status-serving {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
 .attendance-tile.status-duty,
+.attendance-tile.status-dutySleep {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+}
+
+.attendance-tile.status-medical {
+  border-color: #fecdd3;
+  background: #fff1f2;
+}
+
+.attendance-tile.status-corporalCheckup {
+  border-color: #bae6fd;
+  background: #f0f9ff;
+}
+
+.attendance-tile.status-dispatch,
 .attendance-tile.status-mowing,
-.attendance-tile.status-serving,
-.attendance-tile.status-cooking,
 .attendance-tile.status-etc {
-  border-color: var(--color-info-border);
-  background: var(--color-info-soft);
+  border-color: #e5e7eb;
+  background: #f8fafc;
 }
 
 .checkmark {
@@ -1020,6 +1047,9 @@ textarea {
 .status-action-leave,
 .status-action-dispatch,
 .status-action-mowing,
+.status-action-medical,
+.status-action-dutySleep,
+.status-action-corporalCheckup,
 .status-action-serving,
 .status-action-cooking,
 .status-action-duty,
@@ -1049,11 +1079,52 @@ textarea {
 .status-serving .exception-open-button,
 .status-cooking .exception-open-button,
 .status-duty .exception-open-button,
+.status-medical .exception-open-button,
+.status-dutySleep .exception-open-button,
+.status-corporalCheckup .exception-open-button,
 .status-etc .exception-open-button {
   color: var(--color-white);
   background: var(--color-info);
   border-color: var(--color-info);
   box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
+}
+
+.status-leave .exception-open-button {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.status-cooking .exception-open-button {
+  background: #ea580c;
+  border-color: #ea580c;
+}
+
+.status-serving .exception-open-button {
+  background: #059669;
+  border-color: #059669;
+}
+
+.status-duty .exception-open-button,
+.status-dutySleep .exception-open-button {
+  background: #7c3aed;
+  border-color: #7c3aed;
+}
+
+.status-medical .exception-open-button {
+  background: #e11d48;
+  border-color: #e11d48;
+}
+
+.status-corporalCheckup .exception-open-button {
+  background: #0284c7;
+  border-color: #0284c7;
+}
+
+.status-etc .exception-open-button,
+.status-dispatch .exception-open-button,
+.status-mowing .exception-open-button {
+  background: #64748b;
+  border-color: #64748b;
 }
 
 .exception-picker-backdrop {

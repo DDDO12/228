@@ -20,7 +20,17 @@ export interface Soldier {
   category?: Category
   divisionId?: string
   section?: string
-  exceptionStatus?: 'leave' | 'dispatch' | 'duty' | 'mowing' | 'serving' | 'cooking' | 'etc'
+  exceptionStatus?:
+    | 'leave'
+    | 'dispatch'
+    | 'duty'
+    | 'mowing'
+    | 'medical'
+    | 'dutySleep'
+    | 'corporalCheckup'
+    | 'serving'
+    | 'cooking'
+    | 'etc'
   exceptionStart?: string
   exceptionUntil?: string
   active: boolean

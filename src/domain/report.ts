@@ -32,7 +32,7 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
         const status = normalizeAttendanceStatus(item.status, item.ate)
         return status !== 'ate' && status !== 'missing'
       }).length
-      lines.push(`${divisionName}: 취식 ${ate}명, 미취식 ${missing}명, 근무 ${excluded}명`)
+      lines.push(`${divisionName}: 취식 ${ate}명, 미취식 ${missing}명, 근무/기타 ${excluded}명`)
     })
     lines.push('')
   }
@@ -43,7 +43,7 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
   })
 
   if (includeMissing) {
-    lines.push('', '미취식자/근무자:')
+    lines.push('', '미취식자/근무/기타:')
     attendanceStatuses
       .filter((status) => status !== 'ate')
       .forEach((status) => {

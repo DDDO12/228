@@ -8,11 +8,14 @@ export type AttendanceStatus =
   | 'dispatch'
   | 'duty'
   | 'mowing'
+  | 'medical'
+  | 'dutySleep'
+  | 'corporalCheckup'
   | 'serving'
   | 'cooking'
   | 'etc'
 
-export type ScheduledExceptionStatus = Exclude<AttendanceStatus, 'ate' | 'missing' | 'etc'>
+export type ScheduledExceptionStatus = Exclude<AttendanceStatus, 'ate' | 'missing'>
 
 export const attendanceStatusLabels: Record<AttendanceStatus, string> = {
   ate: '취식',
@@ -21,6 +24,9 @@ export const attendanceStatusLabels: Record<AttendanceStatus, string> = {
   dispatch: '파견',
   duty: '근무',
   mowing: '예초',
+  medical: '외진',
+  dutySleep: '근무취침',
+  corporalCheckup: '상병건강검진',
   serving: '배식',
   cooking: '취사',
   etc: '기타',
@@ -33,12 +39,24 @@ export const attendanceStatuses: AttendanceStatus[] = [
   'dispatch',
   'duty',
   'mowing',
+  'medical',
+  'dutySleep',
+  'corporalCheckup',
   'serving',
   'cooking',
   'etc',
 ]
 
-export const exceptionStatuses: ScheduledExceptionStatus[] = ['leave', 'dispatch', 'mowing', 'serving', 'cooking']
+export const exceptionStatuses: ScheduledExceptionStatus[] = [
+  'leave',
+  'cooking',
+  'serving',
+  'duty',
+  'medical',
+  'dutySleep',
+  'corporalCheckup',
+  'etc',
+]
 export const fixedCookingUntil = '9999-12-31'
 
 export function isWorkdayDate(date: string) {
