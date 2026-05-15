@@ -107,12 +107,22 @@ export function AttendanceList({
       openMissingReason(item)
       return
     }
+    if (normalizeAttendanceStatus(item.status, item.ate) === 'missing') {
+      openMissingReason(item)
+      return
+    }
     onToggle(item.soldierId)
   }
 
   function saveMissingReason() {
     if (!selectedItem) return
     onSetStatus(selectedItem.soldierId, 'missing', missingReason)
+    closePicker()
+  }
+
+  function markSelectedAte() {
+    if (!selectedItem) return
+    onSetStatus(selectedItem.soldierId, 'ate')
     closePicker()
   }
 
@@ -258,11 +268,11 @@ export function AttendanceList({
                   ))}
                 </div>
                 <div className="modal-actions">
-                  <button className="ghost-button" onClick={closePicker} type="button">
-                    취소
+                  <button className="secondary-button" onClick={markSelectedAte} type="button">
+                    취식으로 변경
                   </button>
                   <button className="primary-button" onClick={saveMissingReason} type="button">
-                    미취식 처리
+                    사유 저장
                   </button>
                 </div>
               </div>
