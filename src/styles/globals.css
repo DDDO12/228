@@ -197,6 +197,8 @@ main {
 }
 
 .home-hero {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -205,8 +207,18 @@ main {
   border-radius: 8px;
   padding: 22px;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--color-primary-strong), var(--color-primary));
+  background:
+    linear-gradient(90deg, rgba(8, 83, 75, 0.92), rgba(13, 112, 101, 0.7), rgba(13, 112, 101, 0.34)),
+    var(--hero-image),
+    linear-gradient(135deg, var(--color-primary-strong), var(--color-primary));
+  background-position: center;
+  background-size: cover;
   box-shadow: 0 10px 34px rgba(0, 0, 0, 0.08);
+}
+
+.home-hero > * {
+  position: relative;
+  z-index: 1;
 }
 
 .home-hero span {

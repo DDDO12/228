@@ -1,6 +1,9 @@
 import { AlertTriangle, CheckCircle2, Package } from 'lucide-react'
 import type { CSSProperties } from 'react'
 import type { AppState } from '../app/appState'
+import breakfastHero from '../assets/meal-breakfast-hero.webp'
+import dinnerHero from '../assets/meal-dinner-hero.webp'
+import lunchHero from '../assets/meal-lunch-hero.webp'
 import {
   attendanceStatusLabels,
   isAteStatus,
@@ -13,6 +16,12 @@ import {
 import { isLowStock } from '../domain/inventory'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { formatCompactDate, formatTime } from '../utils/date'
+
+const mealHeroImages: Record<MealType, string> = {
+  breakfast: breakfastHero,
+  dinner: dinnerHero,
+  lunch: lunchHero,
+}
 
 function countItems(items: AttendanceItem[], status: AttendanceStatus) {
   return items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status).length
@@ -51,8 +60,6 @@ export function HomeScreen({ app }: { app: AppState }) {
   const selectedDateRecords = recordsByMeal.filter((record): record is AttendanceRecord => Boolean(record))
   const selectedDateItems = selectedDateRecords.flatMap((record) => record.records)
   const hasDateRecords = selectedDateRecords.length > 0
-  const daySummary = summarizeItems(selectedDateItems)
-  const progress = daySummary.total > 0 ? Math.round((daySummary.completed / daySummary.total) * 100) : 0
   const lowStockItems = app.inventoryItems.filter(isLowStock)
   const exceptionItems = selectedDateItems.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -63,25 +70,35 @@ export function HomeScreen({ app }: { app: AppState }) {
     meal,
     record: recordsByMeal[index],
   })) as Array<{ meal: MealType; record?: AttendanceRecord }>
-  const mealProgressText = mealRecords
-    .map(({ meal, record }) => {
-      if (!record) return `${mealLabels[meal]} 기록 없음`
-      const summary = summarizeItems(record.records)
-      return `${mealLabels[meal]} ${summary.completed}/${summary.total}`
-    })
-    .join(' · ')
+  const currentMealRecord = mealRecords.find(({ meal }) => meal === app.meal)?.record
+  const currentMealSummary = summarizeItems(currentMealRecord?.records ?? [])
+  const currentMealProgress =
+    currentMealSummary.total > 0 ? Math.round((currentMealSummary.completed / currentMealSummary.total) * 100) : 0
 
   return (
     <div className="stack">
-      <section className="home-hero">
+      <section
+        className="home-hero"
+        style={
+          {
+            '--hero-image': `url(${mealHeroImages[app.meal]})`,
+            '--progress': `${currentMealProgress}%`,
+          } as CSSProperties & Record<'--hero-image' | '--progress', string>
+        }
+      >
         <div>
-          <span>{formatCompactDate(app.date)} 전체 기록</span>
-          <h2>{hasDateRecords ? `${progress}% 완료` : '기록 없음'}</h2>
-          <p>{mealProgressText}</p>
+          <span>
+            {formatCompactDate(app.date)} {mealLabels[app.meal]} 기록
+          </span>
+          <h2>{currentMealRecord ? `${currentMealProgress}% 완료` : '기록 없음'}</h2>
+          <p>
+            총계 {currentMealSummary.total}명 · 취식 {currentMealSummary.ate}명 · 미취식 {currentMealSummary.missing}명 · 근무{' '}
+            {currentMealSummary.excluded}명
+          </p>
         </div>
-        <div className="home-ring" style={{ '--progress': `${progress}%` } as CSSProperties & Record<'--progress', string>}>
-          <strong>{progress}%</strong>
-          <span>완료</span>
+        <div className="home-ring">
+          <strong>{currentMealRecord ? currentMealSummary.completed : 0}</strong>
+          <span>/{currentMealSummary.total}</span>
         </div>
       </section>
 
