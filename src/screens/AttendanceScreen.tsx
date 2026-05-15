@@ -5,13 +5,13 @@ import { AttendanceList } from '../components/AttendanceList'
 import { MealSelector } from '../components/MealSelector'
 
 type DivisionFilter = string | 'all'
+type StatusFilter = 'all' | 'ate' | 'missing' | 'work'
 
 export function AttendanceScreen({ app }: { app: AppState }) {
   const [query, setQuery] = useState('')
   const [divisionId, setDivisionId] = useState<DivisionFilter>('all')
   const [section, setSection] = useState<string>('all')
-  const [showMissingOnly, setShowMissingOnly] = useState(false)
-  const [onlyChecked, setOnlyChecked] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const sections = Array.from(
     new Set(app.soldiers.map((soldier) => soldier.section?.trim()).filter((item): item is string => Boolean(item))),
   ).sort()
@@ -60,13 +60,22 @@ export function AttendanceScreen({ app }: { app: AppState }) {
             전체 미취식
           </button>
         </div>
-        <div className="toggle-line">
-          <label>
-            <input checked={showMissingOnly} onChange={(event) => setShowMissingOnly(event.target.checked)} type="checkbox" /> 미취식/근무만
-          </label>
-          <label>
-            <input checked={onlyChecked} onChange={(event) => setOnlyChecked(event.target.checked)} type="checkbox" /> 취식자만
-          </label>
+        <div className="status-filter-row" aria-label="취식 상태 필터">
+          {[
+            ['all', '전체'],
+            ['missing', '미취식만'],
+            ['work', '근무/기타만'],
+            ['ate', '취식자만'],
+          ].map(([value, label]) => (
+            <button
+              className={statusFilter === value ? 'active' : ''}
+              key={value}
+              onClick={() => setStatusFilter(value as StatusFilter)}
+              type="button"
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </section>
       <AttendanceList
@@ -76,10 +85,9 @@ export function AttendanceScreen({ app }: { app: AppState }) {
         onSetStatus={(id, status, missingReason) => void app.setAttendanceStatus(id, status, missingReason)}
         onSetScheduledException={(id, status, start, until) => void app.setScheduledException(id, status, start, until)}
         onToggle={(id) => void app.toggleAttendance(id)}
-        onlyActive={onlyChecked}
         query={query}
         record={app.currentRecord}
-        showMissingOnly={showMissingOnly}
+        statusFilter={statusFilter}
       />
     </div>
   )

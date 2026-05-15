@@ -698,6 +698,28 @@ textarea {
   min-height: 40px;
 }
 
+.status-filter-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.status-filter-row button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 8px;
+  background: var(--color-control);
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.status-filter-row button.active {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
 .danger-button {
   color: var(--color-white);
   background: var(--color-danger-strong);

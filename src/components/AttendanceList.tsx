@@ -16,11 +16,10 @@ import { toDateInputValue } from '../utils/date'
 
 interface AttendanceListProps {
   divisionId: string | 'all'
-  onlyActive: boolean
+  statusFilter: 'all' | 'ate' | 'missing' | 'work'
   query: string
   record: AttendanceRecord
   section: string | 'all'
-  showMissingOnly: boolean
   onSetStatus: (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => void
   onSetScheduledException: (
     soldierId: string,
@@ -34,11 +33,10 @@ interface AttendanceListProps {
 
 export function AttendanceList({
   divisionId,
-  onlyActive,
+  statusFilter,
   query,
   record,
   section,
-  showMissingOnly,
   onSetStatus,
   onSetScheduledException,
   onClearScheduledException,
@@ -54,8 +52,9 @@ export function AttendanceList({
     const status = normalizeAttendanceStatus(item.status, item.ate)
     if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
     if (section !== 'all' && (item.section ?? '') !== section) return false
-    if (showMissingOnly && status === 'ate') return false
-    if (onlyActive && !isAteStatus(item.status, item.ate)) return false
+    if (statusFilter === 'ate' && status !== 'ate') return false
+    if (statusFilter === 'missing' && status !== 'missing') return false
+    if (statusFilter === 'work' && (status === 'ate' || status === 'missing')) return false
     if (
       normalizedQuery &&
       !item.name.toLowerCase().includes(normalizedQuery) &&
