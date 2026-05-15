@@ -1396,7 +1396,7 @@ textarea {
   color: var(--color-danger);
 }
 
-.bulk-missing-panel {
+.bulk-selection-panel {
   position: fixed;
   right: 10px;
   bottom: calc(78px + env(safe-area-inset-bottom));
@@ -1414,19 +1414,19 @@ textarea {
   backdrop-filter: blur(16px);
 }
 
-.bulk-missing-title {
+.bulk-selection-title {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 10px;
 }
 
-.bulk-missing-title strong {
+.bulk-selection-title strong {
   font-family: var(--font-display);
   font-size: 17px;
 }
 
-.bulk-missing-title span {
+.bulk-selection-title span {
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 700;

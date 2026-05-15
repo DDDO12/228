@@ -45,7 +45,6 @@ export function AttendanceList({
   const [leaveStart, setLeaveStart] = useState(record.date || toDateInputValue())
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const [missingReason, setMissingReason] = useState<MissingReason>('work')
-  const [bulkMissingReason, setBulkMissingReason] = useState<MissingReason>('work')
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([])
   const normalizedQuery = query.trim().toLowerCase()
   const items = record.records
@@ -162,8 +161,8 @@ export function AttendanceList({
     )
   }
 
-  function applyBulkMissingReason() {
-    bulkSelectedIds.forEach((soldierId) => onSetStatus(soldierId, 'missing', bulkMissingReason))
+  function applyBulkAte() {
+    bulkSelectedIds.forEach((soldierId) => onSetStatus(soldierId, 'ate'))
     setBulkSelectedIds([])
   }
 
@@ -249,29 +248,17 @@ export function AttendanceList({
       </div>
 
       {bulkSelectedIds.length > 0 && (
-        <section className="bulk-missing-panel" aria-label="선택 인원 미취식 사유">
-          <div className="bulk-missing-title">
+        <section className="bulk-selection-panel" aria-label="선택 인원 취식 적용">
+          <div className="bulk-selection-title">
             <strong>{bulkSelectedIds.length}명 선택</strong>
-            <span>이름을 다시 누르면 선택 해제</span>
-          </div>
-          <div className="missing-reason-grid">
-            {missingReasons.map((reason) => (
-              <button
-                className={bulkMissingReason === reason ? 'active' : ''}
-                key={reason}
-                onClick={() => setBulkMissingReason(reason)}
-                type="button"
-              >
-                {missingReasonLabels[reason]}
-              </button>
-            ))}
+            <span>취식 처리할 인원</span>
           </div>
           <div className="modal-actions">
             <button className="ghost-button" onClick={() => setBulkSelectedIds([])} type="button">
               선택 해제
             </button>
-            <button className="primary-button" onClick={applyBulkMissingReason} type="button">
-              미취식 적용
+            <button className="primary-button" onClick={applyBulkAte} type="button">
+              취식 적용
             </button>
           </div>
         </section>
