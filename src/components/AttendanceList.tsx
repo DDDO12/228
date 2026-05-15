@@ -4,8 +4,11 @@ import {
   attendanceStatusLabels,
   exceptionStatuses,
   isAteStatus,
+  missingReasonLabels,
+  missingReasons,
   normalizeAttendanceStatus,
   type AttendanceStatus,
+  type MissingReason,
   type ScheduledExceptionStatus,
 } from '../domain/attendance'
 import type { AttendanceItem, AttendanceRecord } from '../domain/attendance'
@@ -18,7 +21,7 @@ interface AttendanceListProps {
   record: AttendanceRecord
   section: string | 'all'
   showMissingOnly: boolean
-  onSetStatus: (soldierId: string, status: AttendanceStatus) => void
+  onSetStatus: (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => void
   onSetScheduledException: (
     soldierId: string,
     status: ScheduledExceptionStatus,
@@ -42,9 +45,10 @@ export function AttendanceList({
   onToggle,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
-  const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive'>('choices')
+  const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive' | 'missing'>('choices')
   const [leaveStart, setLeaveStart] = useState(record.date || toDateInputValue())
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
+  const [missingReason, setMissingReason] = useState<MissingReason>('work')
   const normalizedQuery = query.trim().toLowerCase()
   const items = record.records.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -90,6 +94,26 @@ export function AttendanceList({
     }
     onSetStatus(selectedItem.soldierId, status)
     setSelectedItem(undefined)
+  }
+
+  function openMissingReason(item: AttendanceItem) {
+    setSelectedItem(item)
+    setMissingReason(item.missingReason ?? 'work')
+    setPickerMode('missing')
+  }
+
+  function toggleItem(item: AttendanceItem) {
+    if (isAteStatus(item.status, item.ate)) {
+      openMissingReason(item)
+      return
+    }
+    onToggle(item.soldierId)
+  }
+
+  function saveMissingReason() {
+    if (!selectedItem) return
+    onSetStatus(selectedItem.soldierId, 'missing', missingReason)
+    closePicker()
   }
 
   function openPicker(item: AttendanceItem) {
@@ -154,7 +178,7 @@ export function AttendanceList({
           const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무/기타' : attendanceStatusLabels[status]
           return (
             <article className={`attendance-tile status-${status}`} key={item.soldierId}>
-              <button className="attendance-main-button" onClick={() => onToggle(item.soldierId)} type="button">
+              <button className="attendance-main-button" onClick={() => toggleItem(item)} type="button">
                 <span className="checkmark">{isCompleted && <Check size={18} />}</span>
                 <span className="attendance-person">
                   <span className="attendance-name-line">
@@ -164,11 +188,12 @@ export function AttendanceList({
                   <small>
                     {item.section || '분과 미지정'}
                     {item.exceptionUntil ? ` · ${item.exceptionStart ?? record.date}~${item.exceptionUntil}` : ''}
+                    {status === 'missing' && item.missingReason ? ` · ${missingReasonLabels[item.missingReason]}` : ''}
                   </small>
                 </span>
               </button>
               <div className="attendance-tile-footer">
-                <button className={`status-action status-action-${status}`} onClick={() => onToggle(item.soldierId)} type="button">
+                <button className={`status-action status-action-${status}`} onClick={() => toggleItem(item)} type="button">
                   {isCompleted ? '취식' : '미취식'}
                 </button>
                 <button
@@ -194,7 +219,9 @@ export function AttendanceList({
                     ? '휴가 기간 설정'
                     : pickerMode === 'leaveActive'
                       ? '휴가 일정 조정'
-                      : '근무/기타 설정'}
+                      : pickerMode === 'missing'
+                        ? '미취식 사유'
+                        : '근무/기타 설정'}
                 </span>
                 <h2>{selectedItem.name}</h2>
               </div>
@@ -215,6 +242,29 @@ export function AttendanceList({
                     <span>{status === 'leave' ? '기간 입력' : '근무/기타 처리'}</span>
                   </button>
                 ))}
+              </div>
+            ) : pickerMode === 'missing' ? (
+              <div className="leave-date-form">
+                <div className="missing-reason-grid">
+                  {missingReasons.map((reason) => (
+                    <button
+                      className={missingReason === reason ? 'active' : ''}
+                      key={reason}
+                      onClick={() => setMissingReason(reason)}
+                      type="button"
+                    >
+                      {missingReasonLabels[reason]}
+                    </button>
+                  ))}
+                </div>
+                <div className="modal-actions">
+                  <button className="ghost-button" onClick={closePicker} type="button">
+                    취소
+                  </button>
+                  <button className="primary-button" onClick={saveMissingReason} type="button">
+                    미취식 처리
+                  </button>
+                </div>
               </div>
             ) : pickerMode === 'leaveActive' ? (
               <div className="leave-date-form">

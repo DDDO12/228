@@ -16,6 +16,7 @@ export type AttendanceStatus =
   | 'etc'
 
 export type ScheduledExceptionStatus = Exclude<AttendanceStatus, 'ate' | 'missing'>
+export type MissingReason = 'vehicle' | 'work' | 'etc'
 
 export const attendanceStatusLabels: Record<AttendanceStatus, string> = {
   ate: '취식',
@@ -57,6 +58,12 @@ export const exceptionStatuses: ScheduledExceptionStatus[] = [
   'corporalCheckup',
   'etc',
 ]
+export const missingReasonLabels: Record<MissingReason, string> = {
+  vehicle: '배차',
+  work: '작업',
+  etc: '기타',
+}
+export const missingReasons: MissingReason[] = ['vehicle', 'work', 'etc']
 export const fixedCookingUntil = '9999-12-31'
 
 export function isWorkdayDate(date: string) {
@@ -83,6 +90,7 @@ export interface AttendanceItem {
   status: AttendanceStatus
   exceptionStart?: string
   exceptionUntil?: string
+  missingReason?: MissingReason
   ate?: boolean
   updatedAt: string
 }
@@ -134,6 +142,7 @@ export function createAttendanceRecord(
           status,
           exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
           exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
+          missingReason: undefined,
           ate: isAteStatus(status),
           updatedAt: now,
         }
@@ -166,6 +175,7 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
         status,
         exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
         exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
+        missingReason: status === 'missing' ? previous?.missingReason : undefined,
         ate: isAteStatus(status, previous?.ate),
         updatedAt: previous?.updatedAt ?? now,
       }

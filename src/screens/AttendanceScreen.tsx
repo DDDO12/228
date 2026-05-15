@@ -73,7 +73,7 @@ export function AttendanceScreen({ app }: { app: AppState }) {
         divisionId={divisionId}
         section={section}
         onClearScheduledException={(id) => void app.clearScheduledException(id)}
-        onSetStatus={(id, status) => void app.setAttendanceStatus(id, status)}
+        onSetStatus={(id, status, missingReason) => void app.setAttendanceStatus(id, status, missingReason)}
         onSetScheduledException={(id, status, start, until) => void app.setScheduledException(id, status, start, until)}
         onToggle={(id) => void app.toggleAttendance(id)}
         onlyActive={onlyChecked}

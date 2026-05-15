@@ -1,6 +1,7 @@
 import {
   attendanceStatusLabels,
   attendanceStatuses,
+  missingReasonLabels,
   isAteStatus,
   normalizeAttendanceStatus,
   type AttendanceStatus,
@@ -49,7 +50,10 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
       .forEach((status) => {
         const names = record.records
           .filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status)
-          .map((item) => `${item.divisionName} ${item.section ? `${item.section} ` : ''}${item.name}`)
+          .map((item) => {
+            const reason = status === 'missing' && item.missingReason ? `(${missingReasonLabels[item.missingReason]})` : ''
+            return `${item.divisionName} ${item.section ? `${item.section} ` : ''}${item.name}${reason}`
+          })
         if (names.length > 0) lines.push(`${attendanceStatusLabels[status]} - ${names.join(', ')}`)
       })
     if (record.records.every((item) => isAteStatus(item.status, item.ate))) lines.push('없음')

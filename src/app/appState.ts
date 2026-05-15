@@ -7,6 +7,7 @@ import {
   syncAttendanceRecord,
   type AttendanceRecord,
   type AttendanceStatus,
+  type MissingReason,
   type ScheduledExceptionStatus,
 } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
@@ -198,7 +199,7 @@ export function useAppState() {
   )
 
   const setAttendanceStatus = useCallback(
-    async (soldierId: string, status: AttendanceStatus) => {
+    async (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => {
       setUndoRecord(currentRecord)
       const now = nowIso()
       if (status === 'serving' || status === 'cooking') {
@@ -243,6 +244,7 @@ export function useAppState() {
                     status,
                     exceptionStart: status === 'cooking' ? undefined : currentRecord.date,
                     exceptionUntil: status === 'cooking' ? undefined : currentRecord.date,
+                    missingReason: undefined,
                     ate: true,
                     updatedAt: now,
                   }
@@ -265,7 +267,15 @@ export function useAppState() {
         ...currentRecord,
         records: currentRecord.records.map((item) =>
           item.soldierId === soldierId
-            ? { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: isAteStatus(status), updatedAt: now }
+            ? {
+                ...item,
+                status,
+                exceptionStart: undefined,
+                exceptionUntil: undefined,
+                missingReason: status === 'missing' ? missingReason : undefined,
+                ate: isAteStatus(status),
+                updatedAt: now,
+              }
             : item,
         ),
         updatedAt: now,
@@ -295,6 +305,7 @@ export function useAppState() {
                 status: recordStatus,
                 exceptionStart: appliesToCurrentDate ? start : undefined,
                 exceptionUntil: appliesToCurrentDate ? until : undefined,
+                missingReason: undefined,
                 ate: isAteStatus(recordStatus),
                 updatedAt: now,
               }
@@ -321,7 +332,15 @@ export function useAppState() {
         ...currentRecord,
         records: currentRecord.records.map((item) =>
           item.soldierId === soldierId
-            ? { ...item, status: 'missing', exceptionStart: undefined, exceptionUntil: undefined, ate: false, updatedAt: now }
+            ? {
+                ...item,
+                status: 'missing',
+                exceptionStart: undefined,
+                exceptionUntil: undefined,
+                missingReason: undefined,
+                ate: false,
+                updatedAt: now,
+              }
             : item,
         ),
         updatedAt: now,
@@ -352,7 +371,15 @@ export function useAppState() {
         records: currentRecord.records.map((item) =>
           item.status === 'leave' && item.exceptionUntil
             ? item
-            : { ...item, status, exceptionStart: undefined, exceptionUntil: undefined, ate: isAteStatus(status), updatedAt: now },
+            : {
+                ...item,
+                status,
+                exceptionStart: undefined,
+                exceptionUntil: undefined,
+                missingReason: undefined,
+                ate: isAteStatus(status),
+                updatedAt: now,
+              },
         ),
         updatedAt: now,
       })

@@ -1209,6 +1209,27 @@ textarea {
   font-size: 13px;
 }
 
+.missing-reason-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.missing-reason-grid button {
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-control);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.missing-reason-grid button.active {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .empty-state {
   padding: 40px 16px;
   color: #6e6e73;
