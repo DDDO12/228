@@ -2125,11 +2125,46 @@ textarea {
   }
 
   .attendance-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .attendance-tile {
     grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    min-height: 58px;
+    padding: 7px 8px;
+  }
+
+  .attendance-main-button {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 7px;
+  }
+
+  .checkmark {
+    width: 26px;
+    height: 26px;
+  }
+
+  .attendance-tile strong,
+  .soldier-card strong {
+    font-size: 15px;
+  }
+
+  .attendance-name-line em {
+    max-width: 52px;
+    padding-inline: 5px;
+  }
+
+  .attendance-tile-footer {
+    min-height: 34px;
+  }
+
+  .status-action,
+  .exception-open-button {
+    min-height: 30px;
+    padding-inline: 6px;
+    font-size: 11px;
   }
 
   .soldier-grid,
