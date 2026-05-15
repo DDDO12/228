@@ -84,7 +84,6 @@ export function AttendanceScreen({ app }: { app: AppState }) {
         onClearScheduledException={(id) => void app.clearScheduledException(id)}
         onSetStatus={(id, status, missingReason) => void app.setAttendanceStatus(id, status, missingReason)}
         onSetScheduledException={(id, status, start, until) => void app.setScheduledException(id, status, start, until)}
-        onToggle={(id) => void app.toggleAttendance(id)}
         query={query}
         record={app.currentRecord}
         statusFilter={statusFilter}

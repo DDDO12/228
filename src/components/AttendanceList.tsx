@@ -28,7 +28,6 @@ interface AttendanceListProps {
     until: string,
   ) => void
   onClearScheduledException: (soldierId: string) => void
-  onToggle: (soldierId: string) => void
 }
 
 export function AttendanceList({
@@ -40,7 +39,6 @@ export function AttendanceList({
   onSetStatus,
   onSetScheduledException,
   onClearScheduledException,
-  onToggle,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
   const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive' | 'missing'>('choices')
@@ -99,18 +97,6 @@ export function AttendanceList({
     setSelectedItem(item)
     setMissingReason(item.missingReason ?? 'work')
     setPickerMode('missing')
-  }
-
-  function toggleItem(item: AttendanceItem) {
-    if (isAteStatus(item.status, item.ate)) {
-      openMissingReason(item)
-      return
-    }
-    if (normalizeAttendanceStatus(item.status, item.ate) === 'missing') {
-      openMissingReason(item)
-      return
-    }
-    onToggle(item.soldierId)
   }
 
   function saveMissingReason() {
@@ -187,7 +173,7 @@ export function AttendanceList({
           const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무/기타' : attendanceStatusLabels[status]
           return (
             <article className={`attendance-tile status-${status}`} key={item.soldierId}>
-              <button className="attendance-main-button" onClick={() => toggleItem(item)} type="button">
+              <div className="attendance-main-button">
                 <span className="checkmark">{isCompleted && <Check size={18} />}</span>
                 <span className="attendance-person">
                   <span className="attendance-name-line">
@@ -200,9 +186,9 @@ export function AttendanceList({
                     {status === 'missing' && item.missingReason ? ` · ${missingReasonLabels[item.missingReason]}` : ''}
                   </small>
                 </span>
-              </button>
+              </div>
               <div className="attendance-tile-footer">
-                <button className={`status-action status-action-${status}`} onClick={() => toggleItem(item)} type="button">
+                <button className={`status-action status-action-${status}`} onClick={() => openMissingReason(item)} type="button">
                   {isCompleted ? '취식' : '미취식'}
                 </button>
                 <button
