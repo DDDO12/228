@@ -62,7 +62,7 @@ export function AttendanceScreen({ app }: { app: AppState }) {
         </div>
         <div className="toggle-line">
           <label>
-            <input checked={showMissingOnly} onChange={(event) => setShowMissingOnly(event.target.checked)} type="checkbox" /> 미취식/열외만
+            <input checked={showMissingOnly} onChange={(event) => setShowMissingOnly(event.target.checked)} type="checkbox" /> 미취식/근무만
           </label>
           <label>
             <input checked={onlyChecked} onChange={(event) => setOnlyChecked(event.target.checked)} type="checkbox" /> 취식자만

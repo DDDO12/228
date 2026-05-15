@@ -99,7 +99,7 @@ export function HomeScreen({ app }: { app: AppState }) {
               <CheckCircle2 size={20} />
               <strong>{record ? `${summary.completed}/${summary.total}` : '-'}</strong>
               <span>
-                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 열외 {summary.excluded}
+                {mealLabels[meal]} · 취식 {summary.ate} · 미취식 {summary.missing} · 근무 {summary.excluded}
               </span>
             </article>
           )
@@ -122,7 +122,7 @@ export function HomeScreen({ app }: { app: AppState }) {
               <strong>{mealLabels[meal]}</strong>
               {record ? (
                 <span>
-                  취식 {countRecord(record, 'ate')}명 · 미취식 {countRecord(record, 'missing')}명 · 열외{' '}
+                  취식 {countRecord(record, 'ate')}명 · 미취식 {countRecord(record, 'missing')}명 · 근무{' '}
                   {record.records.filter((item) => {
                     const status = normalizeAttendanceStatus(item.status, item.ate)
                     return status !== 'ate' && status !== 'missing'
@@ -161,7 +161,7 @@ export function HomeScreen({ app }: { app: AppState }) {
                     <strong>{summary.missing}</strong>
                   </div>
                   <div>
-                    <span>열외</span>
+                    <span>근무</span>
                     <strong>{summary.excluded}</strong>
                   </div>
                 </div>
@@ -200,7 +200,7 @@ export function HomeScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>열외자</h2>
+          <h2>근무자</h2>
           <small>휴가 · 파견 · 예초 · 배식 · 취사</small>
         </div>
         {exceptionItems.length > 0 ? (
@@ -222,7 +222,7 @@ export function HomeScreen({ app }: { app: AppState }) {
             })}
           </div>
         ) : (
-          <div className="empty-inline">선택 날짜에 등록된 열외자가 없습니다.</div>
+          <div className="empty-inline">선택 날짜에 등록된 근무자가 없습니다.</div>
         )}
       </section>
 

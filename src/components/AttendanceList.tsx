@@ -125,7 +125,7 @@ export function AttendanceList({
           <strong>{ateCount}명</strong>
         </div>
         <div>
-          <span>열외</span>
+          <span>근무</span>
           <strong>{exceptionCount}명</strong>
         </div>
         <div>
@@ -138,7 +138,7 @@ export function AttendanceList({
           const status = normalizeAttendanceStatus(item.status, item.ate)
           const isCompleted = isAteStatus(item.status, item.ate)
           const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
-          const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '열외' : attendanceStatusLabels[status]
+          const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무' : attendanceStatusLabels[status]
           return (
             <article className={`attendance-tile status-${status}`} key={item.soldierId}>
               <button className="attendance-main-button" onClick={() => onToggle(item.soldierId)} type="button">
@@ -181,7 +181,7 @@ export function AttendanceList({
                     ? '휴가 기간 설정'
                     : pickerMode === 'leaveActive'
                       ? '휴가 일정 조정'
-                      : '열외 설정'}
+                      : '근무 설정'}
                 </span>
                 <h2>{selectedItem.name}</h2>
               </div>
@@ -199,7 +199,7 @@ export function AttendanceList({
                     type="button"
                   >
                     <strong>{attendanceStatusLabels[status]}</strong>
-                    <span>{status === 'leave' ? '기간 입력' : '열외 처리'}</span>
+                    <span>{status === 'leave' ? '기간 입력' : '근무 처리'}</span>
                   </button>
                 ))}
               </div>
