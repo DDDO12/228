@@ -16,12 +16,15 @@ import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { formatCompactDate, formatTime } from '../utils/date'
 
 function countItems(items: AttendanceItem[], status: AttendanceStatus) {
-  if (status === 'ate') return items.filter((item) => isAteStatus(item.status, item.ate)).length
   return items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === status).length
 }
 
 function countRecord(record: AttendanceRecord, status: AttendanceStatus) {
   return countItems(record.records, status)
+}
+
+function countCompleted(items: AttendanceItem[]) {
+  return items.filter((item) => isAteStatus(item.status, item.ate)).length
 }
 
 export function HomeScreen({ app }: { app: AppState }) {
@@ -39,7 +42,8 @@ export function HomeScreen({ app }: { app: AppState }) {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
   }).length
-  const progress = total > 0 ? Math.round((ate / total) * 100) : 0
+  const completed = countCompleted(selectedDateItems)
+  const progress = total > 0 ? Math.round((completed / total) * 100) : 0
   const lowStockItems = app.inventoryItems.filter(isLowStock)
   const exceptionItems = selectedDateItems.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -62,7 +66,7 @@ export function HomeScreen({ app }: { app: AppState }) {
           </p>
         </div>
         <div className="home-ring" style={{ '--progress': `${progress}%` } as CSSProperties & Record<'--progress', string>}>
-          <strong>{ate}</strong>
+          <strong>{completed}</strong>
           <span>/{total}</span>
         </div>
       </section>
@@ -144,14 +148,14 @@ export function HomeScreen({ app }: { app: AppState }) {
         <div className="division-progress-list">
           {app.divisions.map((division) => {
             const items = selectedDateItems.filter((item) => item.divisionId === division.id)
-            const divisionAte = countItems(items, 'ate')
-            const percent = items.length > 0 ? Math.round((divisionAte / items.length) * 100) : 0
+            const divisionCompleted = countCompleted(items)
+            const percent = items.length > 0 ? Math.round((divisionCompleted / items.length) * 100) : 0
             return (
               <article key={division.id}>
                 <div>
                   <strong>{division.name}</strong>
                   <span>
-                    {divisionAte}/{items.length}명
+                    {divisionCompleted}/{items.length}명
                   </span>
                 </div>
                 <div className="progress-track">

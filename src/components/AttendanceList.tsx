@@ -67,7 +67,7 @@ export function AttendanceList({
     const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
     return rank(statusA) - rank(statusB) || a.divisionName.localeCompare(b.divisionName) || a.name.localeCompare(b.name)
   })
-  const ateCount = items.filter((item) => isAteStatus(item.status, item.ate)).length
+  const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
   const exceptionCount = items.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
