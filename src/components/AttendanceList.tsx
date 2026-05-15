@@ -65,7 +65,15 @@ export function AttendanceList({
     const statusA = normalizeAttendanceStatus(a.status, a.ate)
     const statusB = normalizeAttendanceStatus(b.status, b.ate)
     const rank = (status: AttendanceStatus) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
-    return rank(statusA) - rank(statusB) || a.divisionName.localeCompare(b.divisionName) || a.name.localeCompare(b.name)
+    const sectionA = a.section?.trim() ?? ''
+    const sectionB = b.section?.trim() ?? ''
+    const sectionRank = Number(!sectionA) - Number(!sectionB)
+    return (
+      rank(statusA) - rank(statusB) ||
+      sectionRank ||
+      sectionA.localeCompare(sectionB, 'ko') ||
+      a.name.localeCompare(b.name, 'ko')
+    )
   })
   const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
   const missingCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
