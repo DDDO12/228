@@ -39,6 +39,12 @@ export const attendanceStatuses: AttendanceStatus[] = [
 ]
 
 export const exceptionStatuses: ScheduledExceptionStatus[] = ['leave', 'dispatch', 'mowing', 'serving', 'cooking']
+export const fixedCookingUntil = '9999-12-31'
+
+export function isWorkdayDate(date: string) {
+  const day = new Date(`${date}T00:00:00`).getDay()
+  return day >= 1 && day <= 5
+}
 
 export function isAteStatus(status?: AttendanceStatus, ate?: boolean) {
   return status ? status !== 'missing' : Boolean(ate)
@@ -79,6 +85,7 @@ function resolveDivision(soldier: Soldier, divisions: Division[]) {
 function resolveScheduledException(soldier: Soldier, date: string) {
   if (!soldier.exceptionStatus || !soldier.exceptionUntil) return undefined
   const start = soldier.exceptionStart ?? date
+  if (soldier.exceptionStatus === 'cooking' && !isWorkdayDate(date)) return undefined
   return start <= date && soldier.exceptionUntil >= date ? soldier.exceptionStatus : undefined
 }
 
@@ -107,8 +114,8 @@ export function createAttendanceRecord(
           divisionName: division?.name ?? '미지정',
           section: soldier.section,
           status,
-          exceptionStart: scheduledStatus ? soldier.exceptionStart : undefined,
-          exceptionUntil: scheduledStatus ? soldier.exceptionUntil : undefined,
+          exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
+          exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
           ate: isAteStatus(status),
           updatedAt: now,
         }
@@ -139,8 +146,8 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
         divisionName: division?.name ?? previous?.divisionName ?? '미지정',
         section: soldier.section,
         status,
-        exceptionStart: scheduledStatus ? soldier.exceptionStart : undefined,
-        exceptionUntil: scheduledStatus ? soldier.exceptionUntil : undefined,
+        exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
+        exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
         ate: isAteStatus(status, previous?.ate),
         updatedAt: previous?.updatedAt ?? now,
       }

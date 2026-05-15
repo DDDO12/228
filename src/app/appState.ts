@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   createAttendanceRecord,
+  fixedCookingUntil,
   isAteStatus,
+  isWorkdayDate,
   syncAttendanceRecord,
   type AttendanceRecord,
   type AttendanceStatus,
@@ -69,7 +71,11 @@ function migrateDivisions(divisions: Division[]) {
 
 function migrateSoldiers(soldiers: Soldier[], divisions: Division[]) {
   const fallbackDivision = divisions[0]
-  return soldiers.map((soldier) => ({ ...soldier, divisionId: soldier.divisionId ?? fallbackDivision?.id }))
+  return soldiers.map((soldier) => ({
+    ...soldier,
+    divisionId: soldier.divisionId ?? fallbackDivision?.id,
+    exceptionUntil: soldier.exceptionStatus === 'cooking' ? fixedCookingUntil : soldier.exceptionUntil,
+  }))
 }
 
 function deriveSections(soldiers: Soldier[]) {
@@ -118,7 +124,10 @@ export function useAppState() {
         await localStore.saveDivisions(initialDivisions)
       }
       if (storedSections.length === 0 && initialSections.length > 0) await localStore.saveSections(initialSections)
-      if (storedSoldiers.length === 0 || storedSoldiers.some((soldier) => !soldier.divisionId)) {
+      if (
+        storedSoldiers.length === 0 ||
+        storedSoldiers.some((soldier) => !soldier.divisionId || (soldier.exceptionStatus === 'cooking' && soldier.exceptionUntil !== fixedCookingUntil))
+      ) {
         await localStore.saveSoldiers(initialSoldiers)
       }
       if (storedInventory.length === 0) await localStore.saveInventoryItems(initialInventory)
@@ -194,6 +203,10 @@ export function useAppState() {
       const now = nowIso()
       if (status === 'serving' || status === 'cooking') {
         const targetItem = currentRecord.records.find((item) => item.soldierId === soldierId)
+        if (status === 'cooking' && !isWorkdayDate(currentRecord.date)) {
+          setToast('취사는 월~금 근무일에 자동 식사완료로 적용됩니다.')
+          return
+        }
         if (status === 'serving') {
           const servingCount = currentRecord.records.filter(
             (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
@@ -209,7 +222,7 @@ export function useAppState() {
                 ...soldier,
                 exceptionStatus: status,
                 exceptionStart: currentRecord.date,
-                exceptionUntil: currentRecord.date,
+                exceptionUntil: status === 'cooking' ? fixedCookingUntil : currentRecord.date,
                 updatedAt: now,
               }
             : soldier,
@@ -228,8 +241,8 @@ export function useAppState() {
                 ? {
                     ...item,
                     status,
-                    exceptionStart: currentRecord.date,
-                    exceptionUntil: currentRecord.date,
+                    exceptionStart: status === 'cooking' ? undefined : currentRecord.date,
+                    exceptionUntil: status === 'cooking' ? undefined : currentRecord.date,
                     ate: true,
                     updatedAt: now,
                   }
