@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createAttendanceRecord,
   fixedCookingUntil,
@@ -98,6 +98,31 @@ export function useAppState() {
   const [toast, setToast] = useState('')
   const [lastSavedAt, setLastSavedAt] = useState<string>()
   const [undoRecord, setUndoRecord] = useState<AttendanceRecord>()
+  const divisionsRef = useRef(divisions)
+  const soldiersRef = useRef(soldiers)
+  const attendanceRecordsRef = useRef(attendanceRecords)
+  const dateRef = useRef(date)
+  const mealRef = useRef(meal)
+
+  useEffect(() => {
+    divisionsRef.current = divisions
+  }, [divisions])
+
+  useEffect(() => {
+    soldiersRef.current = soldiers
+  }, [soldiers])
+
+  useEffect(() => {
+    attendanceRecordsRef.current = attendanceRecords
+  }, [attendanceRecords])
+
+  useEffect(() => {
+    dateRef.current = date
+  }, [date])
+
+  useEffect(() => {
+    mealRef.current = meal
+  }, [meal])
 
   useEffect(() => {
     async function load() {
@@ -151,7 +176,20 @@ export function useAppState() {
       : createAttendanceRecord(date, meal, soldiers, divisions)
   }, [attendanceRecords, date, divisions, meal, soldiers])
 
+  const getLatestCurrentRecord = useCallback(() => {
+    const latestDate = dateRef.current
+    const latestMeal = mealRef.current
+    const latestRecords = attendanceRecordsRef.current
+    const latestSoldiers = soldiersRef.current
+    const latestDivisions = divisionsRef.current
+    const existing = latestRecords.find((record) => record.date === latestDate && record.meal === latestMeal)
+    return existing
+      ? syncAttendanceRecord(existing, latestSoldiers, latestDivisions)
+      : createAttendanceRecord(latestDate, latestMeal, latestSoldiers, latestDivisions)
+  }, [])
+
   const persistDivisions = useCallback(async (next: Division[]) => {
+    divisionsRef.current = next
     setDivisions(next)
     await localStore.saveDivisions(next)
     setLastSavedAt(nowIso())
@@ -164,6 +202,7 @@ export function useAppState() {
   }, [])
 
   const persistSoldiers = useCallback(async (next: Soldier[]) => {
+    soldiersRef.current = next
     setSoldiers(next)
     await localStore.saveSoldiers(next)
     setLastSavedAt(nowIso())
@@ -182,6 +221,7 @@ export function useAppState() {
   }, [])
 
   const persistRecords = useCallback(async (next: AttendanceRecord[]) => {
+    attendanceRecordsRef.current = next
     setAttendanceRecords(next)
     await localStore.saveAttendanceRecords(next)
     setLastSavedAt(nowIso())
@@ -189,27 +229,32 @@ export function useAppState() {
 
   const upsertRecord = useCallback(
     async (record: AttendanceRecord) => {
+      const latestRecords = attendanceRecordsRef.current
       const next = [
-        ...attendanceRecords.filter((item) => item.id !== record.id),
+        ...latestRecords.filter((item) => item.id !== record.id),
         { ...record, updatedAt: nowIso() },
       ].sort((a, b) => a.id.localeCompare(b.id))
       await persistRecords(next)
     },
-    [attendanceRecords, persistRecords],
+    [persistRecords],
   )
 
   const setAttendanceStatus = useCallback(
     async (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => {
-      setUndoRecord(currentRecord)
+      const activeRecord = getLatestCurrentRecord()
+      const activeRecords = attendanceRecordsRef.current
+      const activeSoldiers = soldiersRef.current
+      const activeDivisions = divisionsRef.current
+      setUndoRecord(activeRecord)
       const now = nowIso()
       if (status === 'serving' || status === 'cooking') {
-        const targetItem = currentRecord.records.find((item) => item.soldierId === soldierId)
-        if (status === 'cooking' && !isWorkdayDate(currentRecord.date)) {
+        const targetItem = activeRecord.records.find((item) => item.soldierId === soldierId)
+        if (status === 'cooking' && !isWorkdayDate(activeRecord.date)) {
           setToast('취사는 월~금 근무일에 자동 식사완료로 적용됩니다.')
           return
         }
         if (status === 'serving') {
-          const servingCount = currentRecord.records.filter(
+          const servingCount = activeRecord.records.filter(
             (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
           ).length
           if (servingCount >= 2) {
@@ -217,24 +262,24 @@ export function useAppState() {
             return
           }
         }
-        const nextSoldiers = soldiers.map((soldier) =>
+        const nextSoldiers = activeSoldiers.map((soldier) =>
           soldier.id === soldierId
             ? {
                 ...soldier,
                 exceptionStatus: status,
-                exceptionStart: currentRecord.date,
-                exceptionUntil: status === 'cooking' ? fixedCookingUntil : currentRecord.date,
+                exceptionStart: activeRecord.date,
+                exceptionUntil: status === 'cooking' ? fixedCookingUntil : activeRecord.date,
                 updatedAt: now,
               }
             : soldier,
         )
         await persistSoldiers(nextSoldiers)
         const nextRecords = mealOrder.flatMap((itemMeal) => {
-          const existing = attendanceRecords.find((record) => record.date === currentRecord.date && record.meal === itemMeal)
-          if (status !== 'cooking' && !existing && itemMeal !== currentRecord.meal) return []
+          const existing = activeRecords.find((record) => record.date === activeRecord.date && record.meal === itemMeal)
+          if (status !== 'cooking' && !existing && itemMeal !== activeRecord.meal) return []
           const base = existing
-            ? syncAttendanceRecord(existing, nextSoldiers, divisions)
-            : createAttendanceRecord(currentRecord.date, itemMeal, nextSoldiers, divisions)
+            ? syncAttendanceRecord(existing, nextSoldiers, activeDivisions)
+            : createAttendanceRecord(activeRecord.date, itemMeal, nextSoldiers, activeDivisions)
           return [{
             ...base,
             records: base.records.map((item) =>
@@ -242,8 +287,8 @@ export function useAppState() {
                 ? {
                     ...item,
                     status,
-                    exceptionStart: status === 'cooking' ? undefined : currentRecord.date,
-                    exceptionUntil: status === 'cooking' ? undefined : currentRecord.date,
+                    exceptionStart: status === 'cooking' ? undefined : activeRecord.date,
+                    exceptionUntil: status === 'cooking' ? undefined : activeRecord.date,
                     missingReason: undefined,
                     ate: true,
                     updatedAt: now,
@@ -253,19 +298,19 @@ export function useAppState() {
             updatedAt: now,
           }]
         })
-        const untouchedRecords = attendanceRecords.filter((record) => record.date !== currentRecord.date)
+        const untouchedRecords = activeRecords.filter((record) => record.date !== activeRecord.date)
         await persistRecords([...untouchedRecords, ...nextRecords].sort((a, b) => a.id.localeCompare(b.id)))
         return
       }
-      const nextSoldiers = soldiers.map((soldier) =>
+      const nextSoldiers = activeSoldiers.map((soldier) =>
         soldier.id === soldierId
           ? { ...soldier, exceptionStatus: undefined, exceptionStart: undefined, exceptionUntil: undefined, updatedAt: now }
           : soldier,
       )
       await persistSoldiers(nextSoldiers)
       await upsertRecord({
-        ...currentRecord,
-        records: currentRecord.records.map((item) =>
+        ...activeRecord,
+        records: activeRecord.records.map((item) =>
           item.soldierId === soldierId
             ? {
                 ...item,
@@ -281,24 +326,26 @@ export function useAppState() {
         updatedAt: now,
       })
     },
-    [attendanceRecords, currentRecord, divisions, persistRecords, persistSoldiers, soldiers, upsertRecord],
+    [getLatestCurrentRecord, persistRecords, persistSoldiers, upsertRecord],
   )
 
   const setScheduledException = useCallback(
     async (soldierId: string, status: ScheduledExceptionStatus, start: string, until: string) => {
-      setUndoRecord(currentRecord)
+      const activeRecord = getLatestCurrentRecord()
+      const activeSoldiers = soldiersRef.current
+      setUndoRecord(activeRecord)
       const now = nowIso()
-      const nextSoldiers = soldiers.map((soldier) =>
+      const nextSoldiers = activeSoldiers.map((soldier) =>
         soldier.id === soldierId
           ? { ...soldier, exceptionStatus: status, exceptionStart: start, exceptionUntil: until, updatedAt: now }
           : soldier,
       )
       await persistSoldiers(nextSoldiers)
-      const appliesToCurrentDate = start <= currentRecord.date && until >= currentRecord.date
+      const appliesToCurrentDate = start <= activeRecord.date && until >= activeRecord.date
       const recordStatus = appliesToCurrentDate ? status : 'missing'
       await upsertRecord({
-        ...currentRecord,
-        records: currentRecord.records.map((item) =>
+        ...activeRecord,
+        records: activeRecord.records.map((item) =>
           item.soldierId === soldierId
             ? {
                 ...item,
@@ -314,23 +361,25 @@ export function useAppState() {
         updatedAt: now,
       })
     },
-    [currentRecord, persistSoldiers, soldiers, upsertRecord],
+    [getLatestCurrentRecord, persistSoldiers, upsertRecord],
   )
 
   const clearScheduledException = useCallback(
     async (soldierId: string) => {
-      setUndoRecord(currentRecord)
+      const activeRecord = getLatestCurrentRecord()
+      const activeSoldiers = soldiersRef.current
+      setUndoRecord(activeRecord)
       const now = nowIso()
       await persistSoldiers(
-        soldiers.map((soldier) =>
+        activeSoldiers.map((soldier) =>
           soldier.id === soldierId
             ? { ...soldier, exceptionStatus: undefined, exceptionStart: undefined, exceptionUntil: undefined, updatedAt: now }
             : soldier,
         ),
       )
       await upsertRecord({
-        ...currentRecord,
-        records: currentRecord.records.map((item) =>
+        ...activeRecord,
+        records: activeRecord.records.map((item) =>
           item.soldierId === soldierId
             ? {
                 ...item,
@@ -346,12 +395,13 @@ export function useAppState() {
         updatedAt: now,
       })
     },
-    [currentRecord, persistSoldiers, soldiers, upsertRecord],
+    [getLatestCurrentRecord, persistSoldiers, upsertRecord],
   )
 
   const toggleAttendance = useCallback(
     async (soldierId: string) => {
-      const item = currentRecord.records.find((record) => record.soldierId === soldierId)
+      const activeRecord = getLatestCurrentRecord()
+      const item = activeRecord.records.find((record) => record.soldierId === soldierId)
       if (item?.status === 'leave' && item.exceptionUntil) {
         setToast('휴가 기간 중인 인원은 카드 터치로 변경되지 않습니다.')
         return
@@ -359,16 +409,17 @@ export function useAppState() {
       const nextStatus = isAteStatus(item?.status, item?.ate) ? 'missing' : 'ate'
       await setAttendanceStatus(soldierId, nextStatus)
     },
-    [currentRecord.records, setAttendanceStatus],
+    [getLatestCurrentRecord, setAttendanceStatus],
   )
 
   const bulkSetAttendance = useCallback(
     async (status: AttendanceStatus) => {
-      setUndoRecord(currentRecord)
+      const activeRecord = getLatestCurrentRecord()
+      setUndoRecord(activeRecord)
       const now = nowIso()
       await upsertRecord({
-        ...currentRecord,
-        records: currentRecord.records.map((item) =>
+        ...activeRecord,
+        records: activeRecord.records.map((item) =>
           item.status === 'leave' && item.exceptionUntil
             ? item
             : {
@@ -384,7 +435,7 @@ export function useAppState() {
         updatedAt: now,
       })
     },
-    [currentRecord, upsertRecord],
+    [getLatestCurrentRecord, upsertRecord],
   )
 
   const addDivision = useCallback(

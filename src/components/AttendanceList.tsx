@@ -20,7 +20,7 @@ interface AttendanceListProps {
   query: string
   record: AttendanceRecord
   section: string | 'all'
-  onSetStatus: (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => void
+  onSetStatus: (soldierId: string, status: AttendanceStatus, missingReason?: MissingReason) => void | Promise<void>
   onSetScheduledException: (
     soldierId: string,
     status: ScheduledExceptionStatus,
@@ -161,8 +161,10 @@ export function AttendanceList({
     )
   }
 
-  function applyBulkAte() {
-    bulkSelectedIds.forEach((soldierId) => onSetStatus(soldierId, 'ate'))
+  async function applyBulkAte() {
+    for (const soldierId of bulkSelectedIds) {
+      await onSetStatus(soldierId, 'ate')
+    }
     setBulkSelectedIds([])
   }
 
@@ -257,7 +259,7 @@ export function AttendanceList({
             <button className="ghost-button" onClick={() => setBulkSelectedIds([])} type="button">
               선택 해제
             </button>
-            <button className="primary-button" onClick={applyBulkAte} type="button">
+            <button className="primary-button" onClick={() => void applyBulkAte()} type="button">
               취식 적용
             </button>
           </div>
