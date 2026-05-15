@@ -82,6 +82,13 @@ export function AttendanceList({
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
   }).length
+  const sectionGroups = items.reduce<Array<{ sectionName: string; items: AttendanceItem[] }>>((groups, item) => {
+    const sectionName = item.section?.trim() || '분과 미지정'
+    const existing = groups.find((group) => group.sectionName === sectionName)
+    if (existing) existing.items.push(item)
+    else groups.push({ sectionName, items: [item] })
+    return groups
+  }, [])
 
   function applyStatus(status: AttendanceStatus) {
     if (!selectedItem) return
@@ -165,43 +172,53 @@ export function AttendanceList({
           <strong>{items.length}명</strong>
         </div>
       </section>
-      <div className="attendance-grid">
-        {items.map((item) => {
-          const status = normalizeAttendanceStatus(item.status, item.ate)
-          const isCompleted = isAteStatus(item.status, item.ate)
-          const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
-          const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무/기타' : attendanceStatusLabels[status]
-          return (
-            <article className={`attendance-tile status-${status}`} key={item.soldierId}>
-              <div className="attendance-main-button">
-                <span className="checkmark">{isCompleted && <Check size={18} />}</span>
-                <span className="attendance-person">
-                  <span className="attendance-name-line">
-                    <strong>{item.name}</strong>
-                    <em>{item.divisionName}</em>
-                  </span>
-                  <small>
-                    {item.section || '분과 미지정'}
-                    {item.exceptionUntil ? ` · ${item.exceptionStart ?? record.date}~${item.exceptionUntil}` : ''}
-                    {status === 'missing' && item.missingReason ? ` · ${missingReasonLabels[item.missingReason]}` : ''}
-                  </small>
-                </span>
-              </div>
-              <div className="attendance-tile-footer">
-                <button className={`status-action status-action-${status}`} onClick={() => openMissingReason(item)} type="button">
-                  {isCompleted ? '취식' : '미취식'}
-                </button>
-                <button
-                  className={`exception-open-button ${isLeaveActive ? 'leave-active-button' : ''}`}
-                  onClick={() => openPicker(item)}
-                  type="button"
-                >
-                  {exceptionLabel} <ChevronRight size={15} />
-                </button>
-              </div>
-            </article>
-          )
-        })}
+      <div className="attendance-section-list">
+        {sectionGroups.map((group) => (
+          <section className="attendance-section-group" key={group.sectionName}>
+            <header>
+              <strong>{group.sectionName}</strong>
+              <span>{group.items.length}명</span>
+            </header>
+            <div className="attendance-grid">
+              {group.items.map((item) => {
+                const status = normalizeAttendanceStatus(item.status, item.ate)
+                const isCompleted = isAteStatus(item.status, item.ate)
+                const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
+                const exceptionLabel = isLeaveActive ? '휴가 중' : status === 'ate' || status === 'missing' ? '근무/기타' : attendanceStatusLabels[status]
+                return (
+                  <article className={`attendance-tile status-${status}`} key={item.soldierId}>
+                    <div className="attendance-main-button">
+                      <span className="checkmark">{isCompleted && <Check size={18} />}</span>
+                      <span className="attendance-person">
+                        <span className="attendance-name-line">
+                          <strong>{item.name}</strong>
+                          <em>{item.divisionName}</em>
+                        </span>
+                        <small>
+                          {item.section || '분과 미지정'}
+                          {item.exceptionUntil ? ` · ${item.exceptionStart ?? record.date}~${item.exceptionUntil}` : ''}
+                          {status === 'missing' && item.missingReason ? ` · ${missingReasonLabels[item.missingReason]}` : ''}
+                        </small>
+                      </span>
+                    </div>
+                    <div className="attendance-tile-footer">
+                      <button className={`status-action status-action-${status}`} onClick={() => openMissingReason(item)} type="button">
+                        {isCompleted ? '취식' : '미취식'}
+                      </button>
+                      <button
+                        className={`exception-open-button ${isLeaveActive ? 'leave-active-button' : ''}`}
+                        onClick={() => openPicker(item)}
+                        type="button"
+                      >
+                        {exceptionLabel} <ChevronRight size={15} />
+                      </button>
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+        ))}
       </div>
 
       {selectedItem && (
