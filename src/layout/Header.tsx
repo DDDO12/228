@@ -1,4 +1,5 @@
-import { Settings } from 'lucide-react'
+import { useRef } from 'react'
+import { CalendarDays, Settings } from 'lucide-react'
 import { routeLabels, type RouteId } from '../app/routes'
 import { formatCompactDate } from '../utils/date'
 
@@ -10,17 +11,33 @@ interface HeaderProps {
 }
 
 export function Header({ date, onDateChange, route, onSettings }: HeaderProps) {
+  const dateInputRef = useRef<HTMLInputElement>(null)
+
+  function openDatePicker() {
+    const input = dateInputRef.current
+    if (!input) return
+    if (typeof input.showPicker === 'function') input.showPicker()
+    else input.click()
+  }
+
   return (
     <header className="app-header">
       <div>
         <h1>{routeLabels[route]}</h1>
       </div>
       <div className="header-actions">
-        <label className="header-date-picker">
-          <span aria-hidden="true">📅</span>
+        <button className="header-date-picker" onClick={openDatePicker} type="button">
+          <CalendarDays aria-hidden="true" size={18} />
           <strong>{formatCompactDate(date)}</strong>
-          <input aria-label="날짜 변경" onChange={(event) => onDateChange(event.target.value)} type="date" value={date} />
-        </label>
+        </button>
+        <input
+          ref={dateInputRef}
+          aria-label="날짜 변경"
+          className="header-date-native-input"
+          onChange={(event) => onDateChange(event.target.value)}
+          type="date"
+          value={date}
+        />
         <button aria-label="설정" className="icon-button" onClick={onSettings} type="button">
           <Settings size={22} />
         </button>

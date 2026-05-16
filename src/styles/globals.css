@@ -127,7 +127,6 @@ h3,
 }
 
 .header-date-picker {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -140,12 +139,7 @@ h3,
   background: var(--color-surface);
   color: var(--color-text);
   font-weight: 800;
-  overflow: hidden;
-}
-
-.header-date-picker span {
-  color: inherit;
-  font-size: 16px;
+  white-space: nowrap;
 }
 
 .header-date-picker strong {
@@ -153,14 +147,17 @@ h3,
   line-height: 1;
 }
 
-.header-date-picker input {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  min-height: 100%;
-  border: 0;
+.header-date-native-input {
+  position: fixed;
+  top: 12px;
+  right: 64px;
+  width: 1px;
+  min-width: 1px;
+  height: 1px;
+  min-height: 1px;
+  padding: 0;
   opacity: 0;
-  cursor: pointer;
+  pointer-events: none;
 }
 
 main {
