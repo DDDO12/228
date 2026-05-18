@@ -2350,6 +2350,33 @@ textarea {
   color: var(--color-text);
 }
 
+.memo-screen {
+  padding-bottom: 76px;
+}
+
+.memo-calendar-panel {
+  padding: 14px;
+}
+
+.memo-calendar-panel .calendar-header {
+  margin-bottom: 8px;
+}
+
+.memo-calendar-panel .calendar-header h2 {
+  font-size: 18px;
+}
+
+.memo-calendar-panel .calendar-header button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+
+.memo-calendar-panel .calendar-weekdays,
+.memo-calendar-panel .memo-calendar-grid {
+  gap: 4px;
+}
+
 .calendar-weekdays,
 .memo-calendar-grid {
   display: grid;
@@ -2379,9 +2406,22 @@ textarea {
   color: var(--color-text);
 }
 
+.memo-calendar-panel .memo-calendar-grid button {
+  aspect-ratio: auto;
+  min-height: 34px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .memo-calendar-grid button.muted {
   color: #a1a1aa;
   background: #fafafa;
+}
+
+.memo-calendar-grid button.has-leave {
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
 }
 
 .memo-calendar-grid button.selected {
@@ -2389,22 +2429,135 @@ textarea {
   background: var(--color-primary);
 }
 
-.memo-calendar-grid i {
+.memo-calendar-markers {
   position: absolute;
-  bottom: 7px;
-  width: 5px;
-  height: 5px;
+  bottom: 4px;
+  display: inline-flex;
+  gap: 3px;
+}
+
+.memo-calendar-grid i {
+  position: static;
+  width: 4px;
+  height: 4px;
   border-radius: 999px;
   background: var(--color-info);
+}
+
+.memo-calendar-grid i.leave-dot {
+  background: var(--color-primary);
 }
 
 .memo-calendar-grid button.selected i {
   background: var(--color-white);
 }
 
+.memo-leave-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.memo-leave-list {
+  display: grid;
+  gap: 8px;
+}
+
+.memo-leave-list article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 10px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 11px;
+  background: var(--color-primary-soft);
+  border: 1px solid var(--color-primary-border);
+}
+
+.memo-leave-list strong,
+.memo-leave-list span {
+  display: block;
+  min-width: 0;
+}
+
+.memo-leave-list span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memo-leave-list button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .memo-editor-panel {
   display: grid;
   gap: 12px;
+}
+
+.memo-leave-add-fab {
+  position: fixed;
+  right: max(16px, calc((100vw - 780px) / 2 + 16px));
+  bottom: calc(88px + env(safe-area-inset-bottom));
+  z-index: 32;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 16px;
+  background: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: 0 18px 42px rgba(15, 118, 110, 0.28);
+  font-weight: 900;
+}
+
+.memo-leave-modal {
+  width: min(100%, 460px);
+}
+
+.vacation-candidate-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+.vacation-candidate-grid button {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  min-height: 58px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: var(--color-control);
+  color: var(--color-text);
+  text-align: left;
+}
+
+.vacation-candidate-grid button.selected {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.vacation-candidate-grid span {
+  overflow: hidden;
+  color: var(--color-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .switch input {

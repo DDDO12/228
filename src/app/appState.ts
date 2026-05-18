@@ -427,6 +427,101 @@ export function useAppState() {
     [getLatestCurrentRecord, persistSoldiers, upsertRecord],
   )
 
+  const scheduleSoldierLeave = useCallback(
+    async (soldierId: string, start: string, until: string) => {
+      const normalizedUntil = until < start ? start : until
+      const activeSoldiers = soldiersRef.current
+      const activeRecords = attendanceRecordsRef.current
+      const activeDivisions = divisionsRef.current
+      const target = activeSoldiers.find((soldier) => soldier.id === soldierId)
+      if (!target) {
+        setToast('휴가를 등록할 인원을 찾지 못했습니다.')
+        return false
+      }
+      const now = nowIso()
+      const nextSoldiers = activeSoldiers.map((soldier) =>
+        soldier.id === soldierId
+          ? { ...soldier, exceptionStatus: 'leave' as const, exceptionStart: start, exceptionUntil: normalizedUntil, updatedAt: now }
+          : soldier,
+      )
+      await persistSoldiers(nextSoldiers)
+      const nextRecords = activeRecords.map((record) => {
+        const appliesToRecord = start <= record.date && normalizedUntil >= record.date
+        const synced = syncAttendanceRecord(record, nextSoldiers, activeDivisions)
+        return {
+          ...synced,
+          records: synced.records.map((item) => {
+            if (item.soldierId !== soldierId) return item
+            if (appliesToRecord) {
+              return {
+                ...item,
+                status: 'leave' as const,
+                exceptionStart: start,
+                exceptionUntil: normalizedUntil,
+                missingReason: undefined,
+                ate: true,
+                updatedAt: now,
+              }
+            }
+            if (item.status !== 'leave') return item
+            return {
+              ...item,
+              status: 'missing' as const,
+              exceptionStart: undefined,
+              exceptionUntil: undefined,
+              missingReason: undefined,
+              ate: false,
+              updatedAt: now,
+            }
+          }),
+          updatedAt: now,
+        }
+      })
+      await persistRecords(nextRecords)
+      setToast(`${target.name} 휴가 일정을 등록했습니다.`)
+      return true
+    },
+    [persistRecords, persistSoldiers],
+  )
+
+  const clearSoldierLeave = useCallback(
+    async (soldierId: string) => {
+      const activeSoldiers = soldiersRef.current
+      const activeRecords = attendanceRecordsRef.current
+      const target = activeSoldiers.find((soldier) => soldier.id === soldierId)
+      if (!target) return false
+      const now = nowIso()
+      const nextSoldiers = activeSoldiers.map((soldier) =>
+        soldier.id === soldierId
+          ? { ...soldier, exceptionStatus: undefined, exceptionStart: undefined, exceptionUntil: undefined, updatedAt: now }
+          : soldier,
+      )
+      await persistSoldiers(nextSoldiers)
+      await persistRecords(
+        activeRecords.map((record) => ({
+          ...record,
+          records: record.records.map((item) =>
+            item.soldierId === soldierId && item.status === 'leave'
+              ? {
+                  ...item,
+                  status: 'missing' as const,
+                  exceptionStart: undefined,
+                  exceptionUntil: undefined,
+                  missingReason: undefined,
+                  ate: false,
+                  updatedAt: now,
+                }
+              : item,
+          ),
+          updatedAt: now,
+        })),
+      )
+      setToast(`${target.name} 휴가 일정을 삭제했습니다.`)
+      return true
+    },
+    [persistRecords, persistSoldiers],
+  )
+
   const clearScheduledException = useCallback(
     async (soldierId: string) => {
       const activeRecord = getLatestCurrentRecord()
@@ -1004,6 +1099,7 @@ export function useAppState() {
     addSoldier,
     adjustInventoryItem,
     attendanceRecords,
+    clearSoldierLeave,
     clearScheduledException,
     cancelOfficerTicket,
     currentRecord,
@@ -1027,6 +1123,7 @@ export function useAppState() {
     resetAll,
     resetCurrentRecord,
     saveMemo,
+    scheduleSoldierLeave,
     setAttendanceStatus,
     setScheduledException,
     setDate,
