@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Edit3, Layers, Plus, Save, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
 import type { Division, Section, Soldier } from '../domain/soldier'
 import { formatTime } from '../utils/date'
+import { matchesSearch } from '../utils/search'
 
 interface SoldierManagerProps {
   divisions: Division[]
@@ -59,17 +60,10 @@ export function SoldierManager({
 
   const filtered = soldiers
     .filter((soldier) => {
-      const term = query.trim().toLowerCase()
       const division = divisionMap.get(soldier.divisionId ?? '') ?? '포대 미지정'
       if (divisionFilterId === 'unassigned' && soldier.divisionId) return false
       if (divisionFilterId !== 'all' && divisionFilterId !== 'unassigned' && soldier.divisionId !== divisionFilterId) return false
-      return (
-        !term ||
-        soldier.name.toLowerCase().includes(term) ||
-        division.toLowerCase().includes(term) ||
-        soldier.section?.toLowerCase().includes(term) ||
-        soldier.note?.toLowerCase().includes(term)
-      )
+      return matchesSearch(query, [soldier.name, division, soldier.section, soldier.note])
     })
     .sort((a, b) => {
       return a.name.localeCompare(b.name, 'ko')

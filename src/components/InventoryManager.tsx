@@ -3,6 +3,7 @@ import { Minus, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import type { InventoryItem } from '../domain/inventory'
 import { isLowStock } from '../domain/inventory'
 import { formatTime } from '../utils/date'
+import { matchesSearch } from '../utils/search'
 
 interface InventoryManagerProps {
   items: InventoryItem[]
@@ -30,8 +31,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const [note, setNote] = useState('')
 
   const filtered = items.filter((item) => {
-    const term = query.trim().toLowerCase()
-    return !term || item.name.toLowerCase().includes(term) || item.note?.toLowerCase().includes(term)
+    return matchesSearch(query, [item.name, item.note])
   })
 
   function resetAddForm() {

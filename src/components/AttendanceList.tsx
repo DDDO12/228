@@ -13,6 +13,7 @@ import {
 } from '../domain/attendance'
 import type { AttendanceItem, AttendanceRecord } from '../domain/attendance'
 import { toDateInputValue } from '../utils/date'
+import { matchesSearch } from '../utils/search'
 
 interface AttendanceListProps {
   divisionId: string | 'all'
@@ -46,7 +47,6 @@ export function AttendanceList({
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const [missingReason, setMissingReason] = useState<MissingReason>('work')
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([])
-  const normalizedQuery = query.trim().toLowerCase()
   const items = record.records
     .filter((item) => {
       const status = normalizeAttendanceStatus(item.status, item.ate)
@@ -55,15 +55,7 @@ export function AttendanceList({
       if (statusFilter === 'ate' && status !== 'ate') return false
       if (statusFilter === 'missing' && status !== 'missing') return false
       if (statusFilter === 'work' && (status === 'ate' || status === 'missing')) return false
-      if (
-        normalizedQuery &&
-        !item.name.toLowerCase().includes(normalizedQuery) &&
-        !item.divisionName.toLowerCase().includes(normalizedQuery) &&
-        !item.section?.toLowerCase().includes(normalizedQuery)
-      ) {
-        return false
-      }
-      return true
+      return matchesSearch(query, [item.name, item.divisionName, item.section])
     })
     .sort((a, b) => {
       const statusA = normalizeAttendanceStatus(a.status, a.ate)
