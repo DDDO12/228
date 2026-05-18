@@ -750,6 +750,54 @@ export function useAppState() {
     [officers, persistOfficers],
   )
 
+  const updateOfficerBuyer = useCallback(
+    async (officerId: string, name: string) => {
+      const trimmed = name.trim()
+      if (!trimmed) return false
+      const officer = officers.find((item) => item.id === officerId)
+      if (!officer) return false
+      if (officers.some((item) => item.id !== officerId && item.name.trim() === trimmed)) {
+        setToast('이미 등록된 식권구매자입니다.')
+        return false
+      }
+
+      const now = nowIso()
+      await persistOfficers(
+        officers.map((item) => (item.id === officerId ? { ...item, name: trimmed, updatedAt: now } : item)),
+      )
+      await persistOfficerMealUses(
+        officerMealUses.map((use) =>
+          use.officerId === officerId ? { ...use, officerName: trimmed, updatedAt: now } : use,
+        ),
+      )
+      await persistOfficerTicketPurchases(
+        officerTicketPurchases.map((purchase) =>
+          purchase.officerId === officerId ? { ...purchase, officerName: trimmed, updatedAt: now } : purchase,
+        ),
+      )
+      return true
+    },
+    [
+      officerMealUses,
+      officerTicketPurchases,
+      officers,
+      persistOfficerMealUses,
+      persistOfficerTicketPurchases,
+      persistOfficers,
+    ],
+  )
+
+  const deleteOfficerBuyer = useCallback(
+    async (officerId: string) => {
+      if (!officers.some((item) => item.id === officerId)) return false
+      await persistOfficers(officers.filter((item) => item.id !== officerId))
+      await persistOfficerMealUses(officerMealUses.filter((use) => use.officerId !== officerId))
+      await persistOfficerTicketPurchases(officerTicketPurchases.filter((purchase) => purchase.officerId !== officerId))
+      return true
+    },
+    [officerMealUses, officerTicketPurchases, officers, persistOfficerMealUses, persistOfficerTicketPurchases, persistOfficers],
+  )
+
   const deleteOfficerMealUse = useCallback(
     async (id: string) => {
       await persistOfficerMealUses(officerMealUses.filter((use) => use.id !== id))
@@ -924,6 +972,7 @@ export function useAppState() {
     date,
     deleteDivision,
     deleteInventoryItem,
+    deleteOfficerBuyer,
     deleteOfficerMealUse,
     deleteSection,
     deleteSoldier,
@@ -953,6 +1002,7 @@ export function useAppState() {
     undoRecord,
     updateDivision,
     updateInventoryItem,
+    updateOfficerBuyer,
     updateSection,
     updateSoldier,
     updateSoldiersBulk,

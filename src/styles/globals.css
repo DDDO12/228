@@ -1731,9 +1731,25 @@ textarea {
   white-space: nowrap;
 }
 
-.ticket-buyer-card header .ghost-button {
-  min-height: 34px;
-  padding-inline: 10px;
+.ticket-buyer-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.ticket-buyer-actions button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-control);
+  color: var(--color-text);
+}
+
+.ticket-buyer-actions button:last-child {
+  color: var(--color-danger-strong);
 }
 
 .ticket-buyer-meals,
@@ -1796,6 +1812,10 @@ textarea {
 
 .ticket-buyer-balance button:disabled {
   opacity: 0.68;
+}
+
+.buyer-edit-modal {
+  width: min(100%, 420px);
 }
 
 .soldier-card.inactive {

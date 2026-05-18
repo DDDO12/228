@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { Search, Ticket, Trash2 } from 'lucide-react'
+import { Pencil, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
-import { createOfficerBalanceMap } from '../domain/officer'
+import { createOfficerBalanceMap, type Officer } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { matchesSearch } from '../utils/search'
 
@@ -49,6 +49,8 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   const [purchaseMeals, setPurchaseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
   const [quantity, setQuantity] = useState(1)
   const [query, setQuery] = useState('')
+  const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
+  const [editName, setEditName] = useState('')
   const balances = useMemo(
     () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses),
     [app.officerMealUses, app.officerTicketPurchases],
@@ -78,6 +80,29 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       setPurchaseName('')
       setQuantity(1)
     }
+  }
+
+  function openEditBuyer(officer: Officer) {
+    setEditingBuyer({ id: officer.id, name: officer.name })
+    setEditName(officer.name)
+  }
+
+  function closeEditBuyer() {
+    setEditingBuyer(undefined)
+    setEditName('')
+  }
+
+  async function handleEditBuyerSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    if (!editingBuyer) return
+    const ok = await app.updateOfficerBuyer(editingBuyer.id, editName)
+    if (ok) closeEditBuyer()
+  }
+
+  function handleDeleteBuyer(officer: Officer) {
+    const ok = window.confirm(`${officer.name} 식권구매자를 삭제할까요?\n오늘 배치와 구매/취소 내역도 함께 삭제됩니다.`)
+    if (!ok) return
+    void app.deleteOfficerBuyer(officer.id)
   }
 
   function findTodayUse(officerId: string, meal: MealType) {
@@ -132,9 +157,14 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                 <article className="ticket-buyer-card" key={officer.id}>
                   <header>
                     <strong>{officer.name}</strong>
-                    <button className="ghost-button" onClick={() => setPurchaseName(officer.name)} type="button">
-                      구매
-                    </button>
+                    <div className="ticket-buyer-actions">
+                      <button aria-label={`${officer.name} 이름 수정`} onClick={() => openEditBuyer(officer)} type="button">
+                        <Pencil size={17} />
+                      </button>
+                      <button aria-label={`${officer.name} 삭제`} onClick={() => handleDeleteBuyer(officer)} type="button">
+                        <Trash2 size={17} />
+                      </button>
+                    </div>
                   </header>
                   <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
                     {mealOrder.map((meal) => {
@@ -215,6 +245,36 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           <div className="empty-inline">식권 취소 내역이 없습니다.</div>
         )}
       </section>
+
+      {editingBuyer && (
+        <div className="modal-backdrop" role="presentation">
+          <form className="modal buyer-edit-modal" onSubmit={handleEditBuyerSubmit}>
+            <header className="modal-header">
+              <div>
+                <span>식권구매자 수정</span>
+                <h2>{editingBuyer.name}</h2>
+              </div>
+              <button aria-label="닫기" className="icon-button" onClick={closeEditBuyer} type="button">
+                <X size={20} />
+              </button>
+            </header>
+            <input
+              autoFocus
+              onChange={(event) => setEditName(event.target.value)}
+              placeholder="식권구매자 이름"
+              value={editName}
+            />
+            <div className="modal-actions">
+              <button className="secondary-button" onClick={closeEditBuyer} type="button">
+                취소
+              </button>
+              <button className="primary-button" type="submit">
+                수정 저장
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   )
 }
