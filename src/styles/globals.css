@@ -1465,6 +1465,20 @@ textarea {
   background: var(--color-primary-strong);
 }
 
+.swipe-confirm.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.swipe-confirm.danger::before {
+  background: rgba(185, 28, 28, 0.12);
+}
+
+.swipe-confirm.danger .swipe-confirm-thumb,
+.swipe-confirm.danger.ready .swipe-confirm-thumb {
+  background: var(--color-danger-strong);
+}
+
 .bulk-selection-panel {
   position: fixed;
   right: 10px;
@@ -2229,6 +2243,10 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 8px;
+}
+
+.modal-actions.single-action {
+  grid-template-columns: 1fr;
 }
 
 .toast {

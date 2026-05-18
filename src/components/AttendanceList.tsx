@@ -31,7 +31,15 @@ interface AttendanceListProps {
   onClearScheduledException: (soldierId: string) => void
 }
 
-function SwipeAteAction({ onComplete }: { onComplete: () => void }) {
+function SwipeStatusAction({
+  label,
+  onComplete,
+  tone = 'primary',
+}: {
+  label: string
+  onComplete: () => void
+  tone?: 'danger' | 'primary'
+}) {
   const [startX, setStartX] = useState<number>()
   const [dragX, setDragX] = useState(0)
   const maxDrag = 112
@@ -56,8 +64,8 @@ function SwipeAteAction({ onComplete }: { onComplete: () => void }) {
 
   return (
     <button
-      aria-label="오른쪽으로 밀어서 취식으로 변경"
-      className={`swipe-confirm ${dragX >= threshold ? 'ready' : ''}`}
+      aria-label={`오른쪽으로 밀어서 ${label}`}
+      className={`swipe-confirm ${tone === 'danger' ? 'danger' : ''} ${dragX >= threshold ? 'ready' : ''}`}
       onPointerCancel={handlePointerEnd}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -65,7 +73,7 @@ function SwipeAteAction({ onComplete }: { onComplete: () => void }) {
       style={{ '--swipe-x': `${dragX}px` } as CSSProperties & Record<'--swipe-x', string>}
       type="button"
     >
-      <span className="swipe-confirm-track">밀어서 취식 변경</span>
+      <span className="swipe-confirm-track">{label}</span>
       <span className="swipe-confirm-thumb">›</span>
     </button>
   )
@@ -153,6 +161,12 @@ export function AttendanceList({
     closePicker()
   }
 
+  function markSelectedMissing() {
+    if (!selectedItem) return
+    onSetStatus(selectedItem.soldierId, 'missing', missingReason)
+    closePicker()
+  }
+
   function openPicker(item: AttendanceItem) {
     const start = item.exceptionStart ?? record.date ?? toDateInputValue()
     setLeaveStart(start)
@@ -209,6 +223,8 @@ export function AttendanceList({
   if (items.length === 0) {
     return <div className="empty-state">조건에 맞는 인원이 없습니다.</div>
   }
+
+  const selectedItemStatus = selectedItem ? normalizeAttendanceStatus(selectedItem.status, selectedItem.ate) : undefined
 
   return (
     <>
@@ -321,7 +337,9 @@ export function AttendanceList({
                     : pickerMode === 'fixedActive'
                       ? `${attendanceStatusLabels[selectedItem.status]} 고정`
                       : pickerMode === 'missing'
-                        ? '미취식 사유'
+                        ? selectedItemStatus === 'ate'
+                          ? '미취식 전환'
+                          : '미취식 사유'
                         : '근무/기타 설정'}
                 </span>
                 <h2>{selectedItem.name}</h2>
@@ -358,11 +376,17 @@ export function AttendanceList({
                     </button>
                   ))}
                 </div>
-                <div className="modal-actions">
-                  <SwipeAteAction onComplete={markSelectedAte} />
-                  <button className="primary-button" onClick={saveMissingReason} type="button">
-                    사유 저장
-                  </button>
+                <div className={`modal-actions ${selectedItemStatus === 'ate' ? 'single-action' : ''}`}>
+                  <SwipeStatusAction
+                    label={selectedItemStatus === 'ate' ? '밀어서 미취식 변경' : '밀어서 취식 변경'}
+                    onComplete={selectedItemStatus === 'ate' ? markSelectedMissing : markSelectedAte}
+                    tone={selectedItemStatus === 'ate' ? 'danger' : 'primary'}
+                  />
+                  {selectedItemStatus !== 'ate' && (
+                    <button className="primary-button" onClick={saveMissingReason} type="button">
+                      사유 저장
+                    </button>
+                  )}
                 </div>
               </div>
             ) : pickerMode === 'fixedActive' ? (
