@@ -936,7 +936,7 @@ textarea {
 
 .manager-action-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -2098,6 +2098,98 @@ textarea {
 .management-list {
   display: grid;
   gap: 8px;
+}
+
+.division-management-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.division-management-card .division-card {
+  border: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.division-section-manager {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--color-control);
+}
+
+.division-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.division-section-title span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.division-section-title small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.division-section-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.division-section-form input {
+  min-height: 38px;
+}
+
+.division-section-form button {
+  min-height: 38px;
+  padding-inline: 10px;
+}
+
+.division-section-list {
+  display: grid;
+  gap: 6px;
+}
+
+.section-chip-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px;
+  background: var(--color-surface);
+}
+
+.section-chip-card > div:first-child {
+  min-width: 0;
+}
+
+.section-chip-card strong,
+.section-chip-card small {
+  display: block;
+}
+
+.section-chip-card small {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.section-chip-card input {
+  min-width: 0;
+  min-height: 38px;
 }
 
 .division-card input {

@@ -37,9 +37,9 @@ function createDivision(name: string): Division {
   return { id: createId('division'), name, createdAt: now, updatedAt: now }
 }
 
-function createSection(name: string): Section {
+function createSection(name: string, divisionId?: string): Section {
   const now = nowIso()
-  return { id: createId('section'), name, createdAt: now, updatedAt: now }
+  return { id: createId('section'), name, divisionId, createdAt: now, updatedAt: now }
 }
 
 function createInventoryItem(name: string, unit: string, quantity: number, minimumQuantity: number): InventoryItem {
@@ -104,10 +104,51 @@ function migrateSoldiers(soldiers: Soldier[], divisions: Division[]) {
   }))
 }
 
+function dedupeSections(sections: Section[]) {
+  const seen = new Set<string>()
+  return sections.filter((section) => {
+    const key = `${section.divisionId ?? ''}:${section.name.trim()}`
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
 function deriveSections(soldiers: Soldier[]) {
-  return Array.from(new Set(soldiers.map((soldier) => soldier.section?.trim()).filter((item): item is string => Boolean(item))))
-    .sort()
-    .map(createSection)
+  const seen = new Set<string>()
+  return soldiers
+    .flatMap((soldier) => {
+      const name = soldier.section?.trim()
+      if (!name) return []
+      const key = `${soldier.divisionId ?? ''}:${name}`
+      if (seen.has(key)) return []
+      seen.add(key)
+      return [createSection(name, soldier.divisionId)]
+    })
+    .sort((a, b) => (a.divisionId ?? '').localeCompare(b.divisionId ?? '') || a.name.localeCompare(b.name, 'ko'))
+}
+
+function migrateSections(sections: Section[], soldiers: Soldier[]) {
+  if (sections.length === 0) return deriveSections(soldiers)
+  const migrated = sections.flatMap((section) => {
+    if (section.divisionId) return [section]
+    const divisionIds = Array.from(
+      new Set(
+        soldiers
+          .filter((soldier) => soldier.section?.trim() === section.name.trim())
+          .map((soldier) => soldier.divisionId)
+          .filter((divisionId): divisionId is string => Boolean(divisionId)),
+      ),
+    )
+    if (divisionIds.length === 0) return [{ ...section, divisionId: undefined }]
+    return divisionIds.map((divisionId, index) => ({
+      ...section,
+      id: index === 0 ? section.id : createId('section'),
+      divisionId,
+      updatedAt: nowIso(),
+    }))
+  })
+  return dedupeSections(migrated)
 }
 
 export function useAppState() {
@@ -178,7 +219,7 @@ export function useAppState() {
       const initialDivisions = storedDivisions.length > 0 ? migrateDivisions(storedDivisions) : seedDivisions
       const initialSoldiers =
         storedSoldiers.length > 0 ? migrateSoldiers(storedSoldiers, initialDivisions) : createSeedSoldiers(initialDivisions)
-      const initialSections = storedSections.length > 0 ? storedSections : deriveSections(initialSoldiers)
+      const initialSections = migrateSections(storedSections, initialSoldiers)
       const initialInventory = storedInventory.length > 0 ? storedInventory : seedInventoryItems
       const dailyInventory = applyDailyInventoryConsumption(initialInventory, toDateInputValue())
 
@@ -194,7 +235,7 @@ export function useAppState() {
       if (storedDivisions.length === 0 || storedDivisions.some((division) => division.name.endsWith('분과'))) {
         await localStore.saveDivisions(initialDivisions)
       }
-      if (storedSections.length === 0 && initialSections.length > 0) await localStore.saveSections(initialSections)
+      if (initialSections.length > 0) await localStore.saveSections(initialSections)
       if (
         storedSoldiers.length === 0 ||
         storedSoldiers.some(
@@ -604,25 +645,33 @@ export function useAppState() {
   const deleteDivision = useCallback(
     async (id: string) => {
       const fallback = divisions.find((division) => division.id !== id)
+      const now = nowIso()
       await persistDivisions(divisions.filter((division) => division.id !== id))
+      await persistSections(
+        dedupeSections(
+          sections.map((section) =>
+            section.divisionId === id ? { ...section, divisionId: fallback?.id, updatedAt: now } : section,
+          ),
+        ),
+      )
       await persistSoldiers(
         soldiers.map((soldier) =>
-          soldier.divisionId === id ? { ...soldier, divisionId: fallback?.id, updatedAt: nowIso() } : soldier,
+          soldier.divisionId === id ? { ...soldier, divisionId: fallback?.id, updatedAt: now } : soldier,
         ),
       )
     },
-    [divisions, persistDivisions, persistSoldiers, soldiers],
+    [divisions, persistDivisions, persistSections, persistSoldiers, sections, soldiers],
   )
 
   const addSection = useCallback(
-    async (name: string) => {
+    async (name: string, divisionId?: string) => {
       const trimmed = name.trim()
       if (!trimmed) return false
-      if (sections.some((section) => section.name === trimmed)) {
+      if (sections.some((section) => section.name === trimmed && (section.divisionId ?? '') === (divisionId ?? ''))) {
         setToast('이미 같은 이름의 분과가 있습니다.')
         return false
       }
-      await persistSections([...sections, createSection(trimmed)])
+      await persistSections([...sections, createSection(trimmed, divisionId)])
       return true
     },
     [persistSections, sections],
@@ -632,16 +681,25 @@ export function useAppState() {
     async (id: string, name: string) => {
       const trimmed = name.trim()
       if (!trimmed) return false
-      if (sections.some((section) => section.id !== id && section.name === trimmed)) {
+      const current = sections.find((section) => section.id === id)
+      if (!current) return false
+      if (
+        sections.some(
+          (section) =>
+            section.id !== id && section.name === trimmed && (section.divisionId ?? '') === (current.divisionId ?? ''),
+        )
+      ) {
         setToast('이미 같은 이름의 분과가 있습니다.')
         return false
       }
-      const current = sections.find((section) => section.id === id)
-      if (!current) return false
       const now = nowIso()
       await persistSections(sections.map((section) => (section.id === id ? { ...section, name: trimmed, updatedAt: now } : section)))
       await persistSoldiers(
-        soldiers.map((soldier) => (soldier.section === current.name ? { ...soldier, section: trimmed, updatedAt: now } : soldier)),
+        soldiers.map((soldier) =>
+          soldier.section === current.name && (!current.divisionId || soldier.divisionId === current.divisionId)
+            ? { ...soldier, section: trimmed, updatedAt: now }
+            : soldier,
+        ),
       )
       return true
     },
@@ -655,7 +713,11 @@ export function useAppState() {
       const now = nowIso()
       await persistSections(sections.filter((section) => section.id !== id))
       await persistSoldiers(
-        soldiers.map((soldier) => (soldier.section === current.name ? { ...soldier, section: undefined, updatedAt: now } : soldier)),
+        soldiers.map((soldier) =>
+          soldier.section === current.name && (!current.divisionId || soldier.divisionId === current.divisionId)
+            ? { ...soldier, section: undefined, updatedAt: now }
+            : soldier,
+        ),
       )
     },
     [persistSections, persistSoldiers, sections, soldiers],
@@ -1028,7 +1090,7 @@ export function useAppState() {
   const importBackup = useCallback(async (backup: AppBackup) => {
     const nextDivisions = backup.divisions?.length ? migrateDivisions(backup.divisions) : seedDivisions
     const nextSoldiers = migrateSoldiers(backup.soldiers, nextDivisions)
-    const nextSections = backup.sections?.length ? backup.sections : deriveSections(nextSoldiers)
+    const nextSections = migrateSections(backup.sections ?? [], nextSoldiers)
     const nextInventory = applyDailyInventoryConsumption(backup.inventoryItems ?? [], toDateInputValue()).items
     const nextMemos = backup.memos ?? []
     const nextOfficers = backup.officers ?? []

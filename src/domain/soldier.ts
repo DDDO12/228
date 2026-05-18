@@ -10,6 +10,7 @@ export interface Division {
 export interface Section {
   id: string
   name: string
+  divisionId?: string
   createdAt: string
   updatedAt: string
 }

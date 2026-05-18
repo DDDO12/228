@@ -10,7 +10,7 @@ interface SoldierManagerProps {
   soldiers: Soldier[]
   onAdd: (input: Pick<Soldier, 'name' | 'divisionId' | 'section' | 'note'>) => Promise<boolean>
   onAddDivision: (name: string) => Promise<boolean>
-  onAddSection: (name: string) => Promise<boolean>
+  onAddSection: (name: string, divisionId?: string) => Promise<boolean>
   onDelete: (id: string) => void
   onDeleteDivision: (id: string) => void
   onDeleteSection: (id: string) => void
@@ -20,7 +20,9 @@ interface SoldierManagerProps {
   onUpdateSection: (id: string, name: string) => Promise<boolean>
 }
 
-type ManagerModal = 'add' | 'division' | 'section' | 'bulk'
+type ManagerModal = 'add' | 'division' | 'bulk'
+
+const sectionCollator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' })
 
 export function SoldierManager({
   divisions,
@@ -43,7 +45,7 @@ export function SoldierManager({
   const [note, setNote] = useState('')
   const [divisionId, setDivisionId] = useState('')
   const [divisionName, setDivisionName] = useState('')
-  const [sectionName, setSectionName] = useState('')
+  const [sectionDrafts, setSectionDrafts] = useState<Record<string, string>>({})
   const [editingDivisionId, setEditingDivisionId] = useState<string>()
   const [editingDivisionName, setEditingDivisionName] = useState('')
   const [editingSectionId, setEditingSectionId] = useState<string>()
@@ -61,9 +63,31 @@ export function SoldierManager({
     () =>
       Array.from(new Set([...sections.map((item) => item.name), ...soldiers.map((soldier) => soldier.section).filter(Boolean)]))
         .filter((item): item is string => Boolean(item))
-        .sort((a, b) => a.localeCompare(b, 'ko')),
+        .sort(sectionCollator.compare),
     [sections, soldiers],
   )
+  const sectionNamesByDivision = useMemo(() => {
+    const map = new Map<string, string[]>()
+    sections.forEach((item) => {
+      const key = item.divisionId ?? ''
+      const names = map.get(key) ?? []
+      if (!names.includes(item.name)) names.push(item.name)
+      map.set(key, names)
+    })
+    soldiers.forEach((soldier) => {
+      const name = soldier.section?.trim()
+      if (!name) return
+      const key = soldier.divisionId ?? ''
+      const names = map.get(key) ?? []
+      if (!names.includes(name)) names.push(name)
+      map.set(key, names)
+    })
+    map.forEach((names) => names.sort(sectionCollator.compare))
+    return map
+  }, [sections, soldiers])
+
+  const sectionNamesForDivision = (targetDivisionId?: string) =>
+    targetDivisionId ? (sectionNamesByDivision.get(targetDivisionId) ?? []) : sectionNames
 
   const filtered = soldiers
     .filter((soldier) => {
@@ -115,10 +139,26 @@ export function SoldierManager({
     if (ok) setDivisionName('')
   }
 
-  async function handleAddSection(event: React.FormEvent) {
+  async function handleAddSection(event: React.FormEvent, targetDivisionId?: string) {
     event.preventDefault()
-    const ok = await onAddSection(sectionName)
-    if (ok) setSectionName('')
+    const draftKey = targetDivisionId ?? ''
+    const ok = await onAddSection(sectionDrafts[draftKey] ?? '', targetDivisionId)
+    if (ok) setSectionDrafts((drafts) => ({ ...drafts, [draftKey]: '' }))
+  }
+
+  function setSectionDraft(targetDivisionId: string | undefined, value: string) {
+    const draftKey = targetDivisionId ?? ''
+    setSectionDrafts((drafts) => ({ ...drafts, [draftKey]: value }))
+  }
+
+  function changeAddDivision(nextDivisionId: string) {
+    setDivisionId(nextDivisionId)
+    if (section && !sectionNamesForDivision(nextDivisionId || undefined).includes(section)) setSection('')
+  }
+
+  function changeBulkDivision(nextDivisionId: string) {
+    setBulkDivisionId(nextDivisionId)
+    if (bulkSection && !sectionNamesForDivision(nextDivisionId || undefined).includes(bulkSection)) setBulkSection('')
   }
 
   async function saveDivisionName(id: string) {
@@ -170,6 +210,14 @@ export function SoldierManager({
     setEditingSoldier({ ...editingSoldier, ...patch })
   }
 
+  function changeEditingSoldierDivision(nextDivisionId: string) {
+    if (!editingSoldier) return
+    const nextSection = sectionNamesForDivision(nextDivisionId || undefined).includes(editingSoldier.section ?? '')
+      ? editingSoldier.section
+      : undefined
+    setEditingSoldier({ ...editingSoldier, divisionId: nextDivisionId || undefined, section: nextSection })
+  }
+
   function saveSoldierEdit() {
     if (!editingSoldier) return
     onUpdate(editingSoldier.id, {
@@ -203,9 +251,6 @@ export function SoldierManager({
           </button>
           <button onClick={() => setModal('division')} type="button">
             <Layers size={18} /> 포대 관리
-          </button>
-          <button onClick={() => setModal('section')} type="button">
-            <Plus size={18} /> 분과 관리
           </button>
         </div>
       </section>
@@ -333,8 +378,7 @@ export function SoldierManager({
                 <h2>
                   {modal === 'add' && '인원 추가'}
                   {modal === 'bulk' && '일괄 적용'}
-                  {modal === 'division' && '포대 관리'}
-                  {modal === 'section' && '분과 관리'}
+                  {modal === 'division' && '포대/분과 관리'}
                 </h2>
               </div>
               <button aria-label="닫기" className="icon-button" onClick={closeModal} type="button">
@@ -346,7 +390,7 @@ export function SoldierManager({
               <form className="manager-form" onSubmit={handleSubmit}>
                 <input onChange={(event) => setName(event.target.value)} placeholder="이름" value={name} />
                 <div className="field-line">
-                  <select onChange={(event) => setDivisionId(event.target.value)} value={divisionId}>
+                  <select onChange={(event) => changeAddDivision(event.target.value)} value={divisionId}>
                     <option value="">포대 미지정</option>
                     {divisions.map((division) => (
                       <option key={division.id} value={division.id}>
@@ -356,7 +400,7 @@ export function SoldierManager({
                   </select>
                   <select onChange={(event) => setSection(event.target.value)} value={section}>
                     <option value="">분과 미지정</option>
-                    {sectionNames.map((item) => (
+                    {sectionNamesForDivision(divisionId || undefined).map((item) => (
                       <option key={item} value={item}>
                         {item}
                       </option>
@@ -380,7 +424,7 @@ export function SoldierManager({
                   {selectedFilteredCount === filteredIds.length && filtered.length > 0 ? '현재 목록 선택 해제' : '현재 목록 전체 선택'}
                 </button>
                 <div className="field-line">
-                  <select onChange={(event) => setBulkDivisionId(event.target.value)} value={bulkDivisionId}>
+                  <select onChange={(event) => changeBulkDivision(event.target.value)} value={bulkDivisionId}>
                     <option value="">포대 미지정</option>
                     {divisions.map((division) => (
                       <option key={division.id} value={division.id}>
@@ -395,7 +439,7 @@ export function SoldierManager({
                 <div className="field-line">
                   <select onChange={(event) => setBulkSection(event.target.value)} value={bulkSection}>
                     <option value="">분과 미지정</option>
-                    {sectionNames.map((item) => (
+                    {sectionNamesForDivision(bulkDivisionId || undefined).map((item) => (
                       <option key={item} value={item}>
                         {item}
                       </option>
@@ -417,122 +461,138 @@ export function SoldierManager({
                   </button>
                 </form>
                 <div className="management-list">
-                  {divisions.map((division) => (
-                    <article className="division-card" key={division.id}>
-                      {editingDivisionId === division.id ? (
-                        <>
-                          <input
-                            autoFocus
-                            onChange={(event) => setEditingDivisionName(event.target.value)}
-                            onKeyDown={(event) => submitOnEnter(event, () => saveDivisionName(division.id))}
-                            value={editingDivisionName}
-                          />
-                          <div className="icon-row">
-                            <button aria-label="저장" onClick={() => void saveDivisionName(division.id)} type="button">
-                              <Save size={17} />
-                            </button>
-                            <button aria-label="취소" onClick={() => setEditingDivisionId(undefined)} type="button">
-                              <X size={17} />
-                            </button>
+                  {divisions.map((division) => {
+                    const divisionSections = sections
+                      .filter((item) => item.divisionId === division.id)
+                      .sort((a, b) => sectionCollator.compare(a.name, b.name))
+                    const sectionDraft = sectionDrafts[division.id] ?? ''
+                    return (
+                      <article className="division-management-card" key={division.id}>
+                        <div className="division-card">
+                          {editingDivisionId === division.id ? (
+                            <>
+                              <input
+                                autoFocus
+                                onChange={(event) => setEditingDivisionName(event.target.value)}
+                                onKeyDown={(event) => submitOnEnter(event, () => saveDivisionName(division.id))}
+                                value={editingDivisionName}
+                              />
+                              <div className="icon-row">
+                                <button aria-label="저장" onClick={() => void saveDivisionName(division.id)} type="button">
+                                  <Save size={17} />
+                                </button>
+                                <button aria-label="취소" onClick={() => setEditingDivisionId(undefined)} type="button">
+                                  <X size={17} />
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div>
+                                <strong>{division.name}</strong>
+                                <small>{soldiers.filter((soldier) => soldier.divisionId === division.id).length}명</small>
+                              </div>
+                              <div className="icon-row">
+                                <button
+                                  aria-label="포대 수정"
+                                  onClick={() => {
+                                    setEditingDivisionId(division.id)
+                                    setEditingDivisionName(division.name)
+                                  }}
+                                  type="button"
+                                >
+                                  <Edit3 size={17} />
+                                </button>
+                                <button
+                                  aria-label="포대 삭제"
+                                  onClick={() => {
+                                    if (window.confirm(`${division.name} 포대를 삭제할까요?`)) onDeleteDivision(division.id)
+                                  }}
+                                  type="button"
+                                >
+                                  <Trash2 size={17} />
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                        <div className="division-section-manager">
+                          <div className="division-section-title">
+                            <span>분과</span>
+                            <small>{divisionSections.length}개</small>
                           </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <strong>{division.name}</strong>
-                            <small>{soldiers.filter((soldier) => soldier.divisionId === division.id).length}명</small>
+                          <form className="division-section-form" onSubmit={(event) => handleAddSection(event, division.id)}>
+                            <input
+                              onChange={(event) => setSectionDraft(division.id, event.target.value)}
+                              placeholder={`${division.name} 분과 추가`}
+                              value={sectionDraft}
+                            />
+                            <button className="secondary-button" type="submit">
+                              <Plus size={16} /> 추가
+                            </button>
+                          </form>
+                          <div className="division-section-list">
+                            {divisionSections.length === 0 && <p className="muted-copy">아직 묶인 분과가 없습니다.</p>}
+                            {divisionSections.map((item) => (
+                              <article className="section-chip-card" key={item.id}>
+                                {editingSectionId === item.id ? (
+                                  <>
+                                    <input
+                                      autoFocus
+                                      onChange={(event) => setEditingSectionName(event.target.value)}
+                                      onKeyDown={(event) => submitOnEnter(event, () => saveSectionName(item.id))}
+                                      value={editingSectionName}
+                                    />
+                                    <div className="icon-row">
+                                      <button aria-label="저장" onClick={() => void saveSectionName(item.id)} type="button">
+                                        <Save size={17} />
+                                      </button>
+                                      <button aria-label="취소" onClick={() => setEditingSectionId(undefined)} type="button">
+                                        <X size={17} />
+                                      </button>
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div>
+                                      <strong>{item.name}</strong>
+                                      <small>
+                                        {soldiers.filter((soldier) => soldier.divisionId === division.id && soldier.section === item.name).length}
+                                        명
+                                      </small>
+                                    </div>
+                                    <div className="icon-row">
+                                      <button
+                                        aria-label="분과 수정"
+                                        onClick={() => {
+                                          setEditingSectionId(item.id)
+                                          setEditingSectionName(item.name)
+                                        }}
+                                        type="button"
+                                      >
+                                        <Edit3 size={17} />
+                                      </button>
+                                      <button
+                                        aria-label="분과 삭제"
+                                        onClick={() => {
+                                          if (window.confirm(`${division.name} ${item.name} 분과를 삭제할까요? 해당 인원은 분과 미지정으로 변경됩니다.`)) {
+                                            onDeleteSection(item.id)
+                                          }
+                                        }}
+                                        type="button"
+                                      >
+                                        <Trash2 size={17} />
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </article>
+                            ))}
                           </div>
-                          <div className="icon-row">
-                            <button
-                              aria-label="포대 수정"
-                              onClick={() => {
-                                setEditingDivisionId(division.id)
-                                setEditingDivisionName(division.name)
-                              }}
-                              type="button"
-                            >
-                              <Edit3 size={17} />
-                            </button>
-                            <button
-                              aria-label="포대 삭제"
-                              onClick={() => {
-                                if (window.confirm(`${division.name} 포대를 삭제할까요?`)) onDeleteDivision(division.id)
-                              }}
-                              type="button"
-                            >
-                              <Trash2 size={17} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {modal === 'section' && (
-              <div className="manager-form">
-                <form className="field-line" onSubmit={handleAddSection}>
-                  <input onChange={(event) => setSectionName(event.target.value)} placeholder="새 분과 이름" value={sectionName} />
-                  <button className="primary-button" type="submit">
-                    <Plus size={18} /> 추가
-                  </button>
-                </form>
-                <div className="management-list">
-                  {sections.length === 0 && <p className="muted-copy">분과를 추가하면 인원 등록, 수정, 일괄 적용에서 선택할 수 있습니다.</p>}
-                  {sections.map((item) => (
-                    <article className="division-card" key={item.id}>
-                      {editingSectionId === item.id ? (
-                        <>
-                          <input
-                            autoFocus
-                            onChange={(event) => setEditingSectionName(event.target.value)}
-                            onKeyDown={(event) => submitOnEnter(event, () => saveSectionName(item.id))}
-                            value={editingSectionName}
-                          />
-                          <div className="icon-row">
-                            <button aria-label="저장" onClick={() => void saveSectionName(item.id)} type="button">
-                              <Save size={17} />
-                            </button>
-                            <button aria-label="취소" onClick={() => setEditingSectionId(undefined)} type="button">
-                              <X size={17} />
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div>
-                            <strong>{item.name}</strong>
-                            <small>{soldiers.filter((soldier) => soldier.section === item.name).length}명</small>
-                          </div>
-                          <div className="icon-row">
-                            <button
-                              aria-label="분과 수정"
-                              onClick={() => {
-                                setEditingSectionId(item.id)
-                                setEditingSectionName(item.name)
-                              }}
-                              type="button"
-                            >
-                              <Edit3 size={17} />
-                            </button>
-                            <button
-                              aria-label="분과 삭제"
-                              onClick={() => {
-                                if (window.confirm(`${item.name} 분과를 삭제할까요? 해당 인원은 분과 미지정으로 변경됩니다.`)) {
-                                  onDeleteSection(item.id)
-                                }
-                              }}
-                              type="button"
-                            >
-                              <Trash2 size={17} />
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </article>
-                  ))}
+                        </div>
+                      </article>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -554,7 +614,7 @@ export function SoldierManager({
             </header>
             <input onChange={(event) => updateEditingSoldier({ name: event.target.value })} placeholder="이름" value={editingSoldier.name} />
             <select
-              onChange={(event) => updateEditingSoldier({ divisionId: event.target.value || undefined })}
+              onChange={(event) => changeEditingSoldierDivision(event.target.value)}
               value={editingSoldier.divisionId ?? ''}
             >
               <option value="">포대 미지정</option>
@@ -569,7 +629,7 @@ export function SoldierManager({
               value={editingSoldier.section ?? ''}
             >
               <option value="">분과 미지정</option>
-              {sectionNames.map((item) => (
+              {sectionNamesForDivision(editingSoldier.divisionId).map((item) => (
                 <option key={item} value={item}>
                   {item}
                 </option>
