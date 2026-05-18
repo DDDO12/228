@@ -9,7 +9,13 @@ import {
   type MissingReason,
   type ScheduledExceptionStatus,
 } from '../domain/attendance'
-import type { InventoryItem } from '../domain/inventory'
+import {
+  applyDailyInventoryConsumption,
+  isMilitaryRice,
+  militaryRiceDailyConsumption,
+  militaryRiceUnit,
+  type InventoryItem,
+} from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
 import {
   createOfficerBalanceMap,
@@ -38,7 +44,16 @@ function createSection(name: string): Section {
 
 function createInventoryItem(name: string, unit: string, quantity: number, minimumQuantity: number): InventoryItem {
   const now = nowIso()
-  return { id: createId('inventory'), name, unit, quantity, minimumQuantity, createdAt: now, updatedAt: now }
+  const item: InventoryItem = { id: createId('inventory'), name, unit, quantity, minimumQuantity, createdAt: now, updatedAt: now }
+  return isMilitaryRice(item)
+    ? {
+        ...item,
+        unit: militaryRiceUnit,
+        dailyConsumptionEnabled: true,
+        dailyConsumptionAmount: militaryRiceDailyConsumption,
+        lastDailyConsumptionDate: toDateInputValue(),
+      }
+    : item
 }
 
 function createOfficer(name: string): Officer {
@@ -165,12 +180,13 @@ export function useAppState() {
         storedSoldiers.length > 0 ? migrateSoldiers(storedSoldiers, initialDivisions) : createSeedSoldiers(initialDivisions)
       const initialSections = storedSections.length > 0 ? storedSections : deriveSections(initialSoldiers)
       const initialInventory = storedInventory.length > 0 ? storedInventory : seedInventoryItems
+      const dailyInventory = applyDailyInventoryConsumption(initialInventory, toDateInputValue())
 
       setDivisions(initialDivisions)
       setSections(initialSections)
       setSoldiers(initialSoldiers)
       setAttendanceRecords(storedRecords)
-      setInventoryItems(initialInventory)
+      setInventoryItems(dailyInventory.items)
       setMemos(storedMemos)
       setOfficers(storedOfficers)
       setOfficerMealUses(storedOfficerUses)
@@ -189,7 +205,7 @@ export function useAppState() {
       ) {
         await localStore.saveSoldiers(initialSoldiers)
       }
-      if (storedInventory.length === 0) await localStore.saveInventoryItems(initialInventory)
+      if (storedInventory.length === 0 || dailyInventory.changed) await localStore.saveInventoryItems(dailyInventory.items)
       setIsReady(true)
     }
     void load()
@@ -617,7 +633,12 @@ export function useAppState() {
   )
 
   const addInventoryItem = useCallback(
-    async (input: Pick<InventoryItem, 'name' | 'unit' | 'quantity' | 'minimumQuantity' | 'note'>) => {
+    async (
+      input: Pick<
+        InventoryItem,
+        'name' | 'unit' | 'quantity' | 'minimumQuantity' | 'note' | 'dailyConsumptionEnabled' | 'dailyConsumptionAmount'
+      >,
+    ) => {
       const trimmed = input.name.trim()
       if (!trimmed) return false
       if (inventoryItems.some((item) => item.name === trimmed)) {
@@ -625,15 +646,21 @@ export function useAppState() {
         return false
       }
       const now = nowIso()
+      const isRice = isMilitaryRice({ name: trimmed })
+      const dailyEnabled = isRice || input.dailyConsumptionEnabled === true
+      const dailyAmount = isRice ? militaryRiceDailyConsumption : Math.max(0, input.dailyConsumptionAmount ?? 0)
       await persistInventoryItems([
         ...inventoryItems,
         {
           id: createId('inventory'),
           name: trimmed,
-          unit: input.unit.trim() || '개',
+          unit: isRice ? militaryRiceUnit : input.unit.trim() || '개',
           quantity: Math.max(0, input.quantity),
           minimumQuantity: Math.max(0, input.minimumQuantity),
           note: input.note?.trim(),
+          dailyConsumptionEnabled: dailyEnabled,
+          dailyConsumptionAmount: dailyAmount,
+          lastDailyConsumptionDate: dailyEnabled && dailyAmount > 0 ? toDateInputValue() : undefined,
           createdAt: now,
           updatedAt: now,
         },
@@ -647,18 +674,29 @@ export function useAppState() {
     async (id: string, patch: Partial<InventoryItem>) => {
       const now = nowIso()
       await persistInventoryItems(
-        inventoryItems.map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                ...patch,
-                quantity: patch.quantity === undefined ? item.quantity : Math.max(0, patch.quantity),
-                minimumQuantity:
-                  patch.minimumQuantity === undefined ? item.minimumQuantity : Math.max(0, patch.minimumQuantity),
-                updatedAt: now,
-              }
-            : item,
-        ),
+        inventoryItems.map((item) => {
+          if (item.id !== id) return item
+          const nextName = patch.name?.trim() || item.name
+          const isRice = isMilitaryRice({ name: nextName })
+          const dailyEnabled = isRice || (patch.dailyConsumptionEnabled ?? item.dailyConsumptionEnabled) === true
+          const dailyAmount = isRice
+            ? militaryRiceDailyConsumption
+            : Math.max(0, patch.dailyConsumptionAmount ?? item.dailyConsumptionAmount ?? 0)
+          return {
+            ...item,
+            ...patch,
+            name: nextName,
+            unit: isRice ? militaryRiceUnit : patch.unit === undefined ? item.unit : patch.unit.trim() || item.unit,
+            quantity: patch.quantity === undefined ? item.quantity : Math.max(0, patch.quantity),
+            minimumQuantity: patch.minimumQuantity === undefined ? item.minimumQuantity : Math.max(0, patch.minimumQuantity),
+            note: patch.note === undefined ? item.note : patch.note.trim(),
+            dailyConsumptionEnabled: dailyEnabled,
+            dailyConsumptionAmount: dailyAmount,
+            lastDailyConsumptionDate:
+              dailyEnabled && dailyAmount > 0 ? item.lastDailyConsumptionDate ?? toDateInputValue() : undefined,
+            updatedAt: now,
+          }
+        }),
       )
     },
     [inventoryItems, persistInventoryItems],
@@ -896,7 +934,7 @@ export function useAppState() {
     const nextDivisions = backup.divisions?.length ? migrateDivisions(backup.divisions) : seedDivisions
     const nextSoldiers = migrateSoldiers(backup.soldiers, nextDivisions)
     const nextSections = backup.sections?.length ? backup.sections : deriveSections(nextSoldiers)
-    const nextInventory = backup.inventoryItems ?? []
+    const nextInventory = applyDailyInventoryConsumption(backup.inventoryItems ?? [], toDateInputValue()).items
     const nextMemos = backup.memos ?? []
     const nextOfficers = backup.officers ?? []
     const nextOfficerUses = backup.officerMealUses ?? []

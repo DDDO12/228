@@ -2272,8 +2272,55 @@ textarea {
   background: var(--color-primary);
 }
 
+.unit-choice-grid button:disabled {
+  color: var(--color-muted);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .unit-choice-grid input {
   grid-column: 1 / -1;
+}
+
+.daily-consumption-note {
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong) !important;
+  font-weight: 700;
+}
+
+.daily-consumption-control {
+  display: grid;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--color-control);
+}
+
+.daily-consumption-toggle,
+.daily-consumption-amount {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.daily-consumption-toggle input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--color-primary);
+}
+
+.daily-consumption-amount input {
+  width: 120px;
+}
+
+.daily-consumption-control small {
+  color: var(--color-muted);
+  line-height: 1.45;
 }
 
 .compact-fields {
