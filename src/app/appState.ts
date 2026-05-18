@@ -695,35 +695,40 @@ export function useAppState() {
   )
 
   const addOfficerMealUse = useCallback(
-    async (name: string) => {
+    async (name: string, targetMeals: MealType[] = [meal]) => {
       const trimmed = name.trim()
       if (!trimmed) return false
+      const selectedMeals = Array.from(new Set(targetMeals))
+      if (selectedMeals.length === 0) return false
       const now = nowIso()
       const existingOfficer = officers.find((officer) => officer.name.trim() === trimmed)
       const officer = existingOfficer ?? createOfficer(trimmed)
       const nextOfficers = existingOfficer ? officers : [...officers, officer]
-      const duplicate = officerMealUses.some(
-        (use) => use.date === date && use.meal === meal && use.officerId === officer.id,
-      )
-      if (duplicate) {
-        setToast('이미 해당 식사에 등록된 식권구매자입니다.')
-        return false
-      }
-      const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses).get(officer.id)
-      const status: OfficerMealUse['status'] = balance && balance[meal] > 0 ? 'ticket' : 'unpaid'
-      const nextUses = [
-        ...officerMealUses,
-        {
+      const nextUses = [...officerMealUses]
+      let added = 0
+
+      for (const targetMeal of selectedMeals) {
+        const duplicate = nextUses.some((use) => use.date === date && use.meal === targetMeal && use.officerId === officer.id)
+        if (duplicate) continue
+        const balance = createOfficerBalanceMap(officerTicketPurchases, nextUses).get(officer.id)
+        const status: OfficerMealUse['status'] = balance && balance[targetMeal] > 0 ? 'ticket' : 'unpaid'
+        nextUses.push({
           id: createId('officer-use'),
           date,
-          meal,
+          meal: targetMeal,
           officerId: officer.id,
           officerName: officer.name,
           status,
           createdAt: now,
           updatedAt: now,
-        },
-      ]
+        })
+        added += 1
+      }
+
+      if (added === 0) {
+        setToast('이미 선택한 식사에 등록된 식권구매자입니다.')
+        return false
+      }
       if (!existingOfficer) await persistOfficers(nextOfficers)
       await persistOfficerMealUses(nextUses)
       return true
@@ -739,15 +744,17 @@ export function useAppState() {
   )
 
   const addOfficerTicketPurchase = useCallback(
-    async (name: string, purchaseMeal: MealType, quantity: number) => {
+    async (name: string, purchaseMeals: MealType[] | MealType, quantity: number) => {
       const trimmed = name.trim()
       const safeQuantity = Math.max(0, Math.floor(quantity))
       if (!trimmed || safeQuantity <= 0) return false
+      const selectedMeals = Array.from(new Set(Array.isArray(purchaseMeals) ? purchaseMeals : [purchaseMeals]))
+      if (selectedMeals.length === 0) return false
       const now = nowIso()
       const existingOfficer = officers.find((officer) => officer.name.trim() === trimmed)
       const officer = existingOfficer ?? createOfficer(trimmed)
       const nextOfficers = existingOfficer ? officers : [...officers, officer]
-      const purchase: OfficerTicketPurchase = {
+      const purchases = selectedMeals.map<OfficerTicketPurchase>((purchaseMeal) => ({
         id: createId('officer-purchase'),
         date,
         meal: purchaseMeal,
@@ -756,18 +763,19 @@ export function useAppState() {
         quantity: safeQuantity,
         createdAt: now,
         updatedAt: now,
-      }
-      let remaining = safeQuantity
+      }))
+      const remainingByMeal = new Map<MealType, number>(selectedMeals.map((purchaseMeal) => [purchaseMeal, safeQuantity]))
       const nextUses = officerMealUses
         .slice()
         .sort((a, b) => `${a.date}-${a.createdAt}`.localeCompare(`${b.date}-${b.createdAt}`))
         .map((use) => {
-          if (remaining <= 0 || use.officerId !== officer.id || use.meal !== purchaseMeal || use.status !== 'unpaid') return use
-          remaining -= 1
+          const remaining = remainingByMeal.get(use.meal) ?? 0
+          if (remaining <= 0 || use.officerId !== officer.id || use.status !== 'unpaid') return use
+          remainingByMeal.set(use.meal, remaining - 1)
           return { ...use, status: 'ticket' as const, updatedAt: now }
         })
       if (!existingOfficer) await persistOfficers(nextOfficers)
-      await persistOfficerTicketPurchases([...officerTicketPurchases, purchase])
+      await persistOfficerTicketPurchases([...officerTicketPurchases, ...purchases])
       await persistOfficerMealUses(nextUses)
       return true
     },
@@ -780,6 +788,36 @@ export function useAppState() {
       persistOfficerTicketPurchases,
       persistOfficers,
     ],
+  )
+
+  const cancelOfficerTicket = useCallback(
+    async (officerId: string, cancelMeal: MealType, quantity = 1) => {
+      const officer = officers.find((item) => item.id === officerId)
+      if (!officer) return false
+      const safeQuantity = Math.max(0, Math.floor(quantity))
+      const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses).get(officerId)
+      const cancellable = Math.min(safeQuantity, Math.max(0, balance?.[cancelMeal] ?? 0))
+      if (cancellable <= 0) {
+        setToast('취소할 잔여 식권이 없습니다.')
+        return false
+      }
+      const now = nowIso()
+      await persistOfficerTicketPurchases([
+        ...officerTicketPurchases,
+        {
+          id: createId('officer-cancel'),
+          date,
+          meal: cancelMeal,
+          officerId,
+          officerName: officer.name,
+          quantity: -cancellable,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+      return true
+    },
+    [date, officerMealUses, officerTicketPurchases, officers, persistOfficerTicketPurchases],
   )
 
   const setMeal = useCallback((nextMeal: MealType) => {
@@ -866,6 +904,7 @@ export function useAppState() {
     adjustInventoryItem,
     attendanceRecords,
     clearScheduledException,
+    cancelOfficerTicket,
     currentRecord,
     date,
     deleteDivision,

@@ -1554,13 +1554,62 @@ textarea {
   font-size: 32px;
 }
 
+.officer-use-form,
+.officer-purchase-form {
+  display: grid;
+  gap: 8px;
+}
+
+.meal-multi-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.meal-multi-row button {
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-control);
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.meal-multi-row button.active {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.officer-meal-groups,
 .officer-use-list,
 .officer-balance-list {
   display: grid;
   gap: 8px;
 }
 
-.officer-use-list article,
+.officer-meal-groups > article {
+  display: grid;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--color-control);
+}
+
+.officer-meal-groups header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.officer-meal-groups header span {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.officer-use-list div,
 .officer-balance-list article {
   display: flex;
   align-items: center;
@@ -1568,23 +1617,28 @@ textarea {
   gap: 10px;
   border-radius: 8px;
   padding: 12px;
-  background: var(--color-control);
+  background: var(--color-surface);
 }
 
-.officer-use-list article.unpaid {
+.officer-use-list div.unpaid {
   border: 1px solid var(--color-danger-border);
   background: var(--color-danger-soft);
 }
 
-.officer-use-list article > div,
 .officer-balance-list article {
   min-width: 0;
 }
 
 .officer-use-list span,
-.officer-balance-list span {
+.officer-balance-list span,
+.officer-use-list small {
   color: var(--color-muted);
   font-size: 13px;
+}
+
+.officer-use-list span {
+  display: grid;
+  gap: 2px;
 }
 
 .officer-use-list button {
@@ -1598,10 +1652,38 @@ textarea {
   color: var(--color-danger-strong);
 }
 
-.officer-purchase-form {
+.officer-balance-list article {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 100px 72px 110px;
   gap: 8px;
+}
+
+.officer-balance-meals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.officer-balance-meals button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-control);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
+.officer-balance-meals button:not(:disabled) {
+  color: var(--color-danger);
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger-border);
+}
+
+.officer-balance-meals button:disabled {
+  opacity: 0.72;
 }
 
 .soldier-card.inactive {
