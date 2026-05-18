@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useSwipeable } from 'react-swipeable'
 import { useAppState } from './app/appState'
 import { routes, type RouteId } from './app/routes'
 import { SplashScreen } from './components/SplashScreen'
@@ -27,16 +26,6 @@ function getInitialRoute(): RouteId {
 function App() {
   const app = useAppState()
   const [route, setRoute] = useState<RouteId>(() => getInitialRoute())
-  const routeIndex = routes.indexOf(route)
-  const swipe = useSwipeable({
-    onSwipedLeft: () => {
-      if (route !== 'attendance') setRoute(routes[Math.min(routes.length - 1, routeIndex + 1)])
-    },
-    onSwipedRight: () => {
-      if (route !== 'attendance') setRoute(routes[Math.max(0, routeIndex - 1)])
-    },
-    trackMouse: true,
-  })
 
   useEffect(() => {
     window.localStorage.setItem(routeStorageKey, route)
@@ -46,7 +35,7 @@ function App() {
   if (!app.isReady) return <SplashScreen />
 
   return (
-    <div {...swipe}>
+    <div>
       <AppShell app={app} onRouteChange={setRoute} route={route}>
         {route === 'home' && <HomeScreen app={app} />}
         {route === 'attendance' && <AttendanceScreen app={app} />}
