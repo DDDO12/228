@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight, Pencil, Search, Ticket, Trash2, X } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ChevronDown, ChevronRight, Pencil, Plus, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
 import { createOfficerBalanceMap, createOfficerUseHistoryMap, type Officer, type OfficerUseHistory } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
@@ -52,6 +53,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   const [purchaseMeals, setPurchaseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
   const [quantity, setQuantity] = useState(1)
   const [query, setQuery] = useState('')
+  const [addBuyerOpen, setAddBuyerOpen] = useState(false)
   const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
   const [editName, setEditName] = useState('')
   const [expandedBuyerState, setExpandedBuyerState] = useState<{ scope: string; ids: string[] }>({
@@ -81,7 +83,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   async function handleBuyerSubmit(event: React.FormEvent) {
     event.preventDefault()
     const ok = await app.addOfficerBuyer(buyerName)
-    if (ok) setBuyerName('')
+    if (ok) {
+      setBuyerName('')
+      setAddBuyerOpen(false)
+    }
   }
 
   async function handlePurchaseSubmit(event: React.FormEvent) {
@@ -180,12 +185,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       </section>
 
       <section className="panel control-panel">
-        <form className="field-line" onSubmit={handleBuyerSubmit}>
-          <input onChange={(event) => setBuyerName(event.target.value)} placeholder="식권구매자 이름 등록" value={buyerName} />
-          <button className="primary-button" type="submit">
-            구매자 추가
-          </button>
-        </form>
         <label className="search-box">
           <Search size={18} />
           <input onChange={(event) => setQuery(event.target.value)} placeholder="식권구매자 이름 검색" value={query} />
@@ -340,6 +339,18 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
         )}
       </section>
 
+      <motion.button
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        className="ticket-buyer-add-fab"
+        initial={{ opacity: 0, y: 28, scale: 0.96 }}
+        onClick={() => setAddBuyerOpen(true)}
+        transition={{ delay: 0.12, duration: 0.2 }}
+        type="button"
+      >
+        <Plus size={18} />
+        구매자 추가
+      </motion.button>
+
       {editingBuyer && (
         <div className="modal-backdrop" role="presentation">
           <form className="modal buyer-edit-modal" onSubmit={handleEditBuyerSubmit}>
@@ -369,6 +380,47 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           </form>
         </div>
       )}
+
+      <AnimatePresence>
+        {addBuyerOpen && (
+          <motion.div
+            animate={{ opacity: 1 }}
+            className="modal-backdrop"
+            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }}
+            onClick={() => setAddBuyerOpen(false)}
+          >
+            <motion.form
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              className="modal buyer-add-modal"
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              onClick={(event) => event.stopPropagation()}
+              onSubmit={handleBuyerSubmit}
+              transition={{ duration: 0.16 }}
+            >
+              <header className="modal-header">
+                <div>
+                  <span>식권구매자</span>
+                  <h2>구매자 추가</h2>
+                </div>
+                <button aria-label="닫기" className="icon-button" onClick={() => setAddBuyerOpen(false)} type="button">
+                  <X size={20} />
+                </button>
+              </header>
+              <input
+                autoFocus
+                onChange={(event) => setBuyerName(event.target.value)}
+                placeholder="식권구매자 이름"
+                value={buyerName}
+              />
+              <button className="primary-button" type="submit">
+                <Plus size={18} /> 추가
+              </button>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
