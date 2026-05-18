@@ -34,6 +34,24 @@ export interface OfficerTicketPurchase {
 
 export type OfficerTicketBalance = Record<MealType, number>
 
+export interface OfficerUseHistory {
+  dayCount: number
+  mealCount: number
+  ticketCount: number
+  unpaidCount: number
+  firstDate?: string
+  lastDate?: string
+}
+
+interface OfficerUseHistoryDraft {
+  dates: Set<string>
+  mealCount: number
+  ticketCount: number
+  unpaidCount: number
+  firstDate?: string
+  lastDate?: string
+}
+
 export function emptyOfficerTicketBalance(): OfficerTicketBalance {
   return { breakfast: 0, lunch: 0, dinner: 0 }
 }
@@ -58,4 +76,42 @@ export function createOfficerBalanceMap(purchases: OfficerTicketPurchase[], uses
   })
 
   return balances
+}
+
+export function createOfficerUseHistoryMap(uses: OfficerMealUse[], untilDate?: string) {
+  const draft = new Map<string, OfficerUseHistoryDraft>()
+
+  function ensure(officerId: string) {
+    const existing = draft.get(officerId)
+    if (existing) return existing
+    const next: OfficerUseHistoryDraft = { dates: new Set<string>(), mealCount: 0, ticketCount: 0, unpaidCount: 0 }
+    draft.set(officerId, next)
+    return next
+  }
+
+  uses
+    .filter((use) => !untilDate || use.date <= untilDate)
+    .forEach((use) => {
+      const history = ensure(use.officerId)
+      history.dates.add(use.date)
+      history.mealCount += 1
+      if (use.status === 'ticket') history.ticketCount += 1
+      else history.unpaidCount += 1
+      if (!history.firstDate || use.date < history.firstDate) history.firstDate = use.date
+      if (!history.lastDate || use.date > history.lastDate) history.lastDate = use.date
+    })
+
+  return new Map<string, OfficerUseHistory>(
+    Array.from(draft.entries()).map(([officerId, history]) => [
+      officerId,
+      {
+        dayCount: history.dates.size,
+        mealCount: history.mealCount,
+        ticketCount: history.ticketCount,
+        unpaidCount: history.unpaidCount,
+        firstDate: history.firstDate,
+        lastDate: history.lastDate,
+      },
+    ]),
+  )
 }

@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Pencil, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
-import { createOfficerBalanceMap, type Officer } from '../domain/officer'
+import { createOfficerBalanceMap, createOfficerUseHistoryMap, type Officer, type OfficerUseHistory } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { matchesSearch } from '../utils/search'
 
@@ -63,6 +63,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses),
     [app.officerMealUses, app.officerTicketPurchases],
   )
+  const histories = useMemo(() => createOfficerUseHistoryMap(app.officerMealUses), [app.officerMealUses])
   const currentUses = app.officerMealUses
     .filter((use) => use.date === app.date && use.meal === app.meal && matchesSearch(query, [use.officerName]))
     .sort((a, b) => koreanNameCollator.compare(a.officerName, b.officerName))
@@ -161,6 +162,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     return states.length > 0 ? states.join(' · ') : '미등록'
   }
 
+  function getHistory(officerId: string): OfficerUseHistory {
+    return histories.get(officerId) ?? { dayCount: 0, mealCount: 0, ticketCount: 0, unpaidCount: 0 }
+  }
+
   return (
     <div className="stack">
       <section className="panel officer-hero-panel">
@@ -201,6 +206,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           <div className="ticket-buyer-grid">
             {visibleBuyers.map((officer) => {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
+              const history = getHistory(officer.id)
               const isExpanded = expandedBuyerIds.includes(officer.id)
               const summary = getBuyerSummary(officer.id, balance)
               return (
@@ -215,6 +221,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       <span>
                         <strong>{officer.name}</strong>
                         <small>{summary}</small>
+                        <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
                       </span>
                       {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                     </button>
@@ -229,6 +236,22 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                   </header>
                   {isExpanded && (
                     <div className="ticket-buyer-detail">
+                      <div className="ticket-buyer-history-strip" aria-label={`${officer.name} 누적 식수`}>
+                        <div>
+                          <span>누적</span>
+                          <strong>{history.dayCount}일</strong>
+                        </div>
+                        <div>
+                          <span>총 식수</span>
+                          <strong>{history.mealCount}식</strong>
+                        </div>
+                        <div>
+                          <span>구매/미구매</span>
+                          <strong>
+                            {history.ticketCount}/{history.unpaidCount}
+                          </strong>
+                        </div>
+                      </div>
                       <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
                         {mealOrder.map((meal) => {
                           const use = findTodayUse(officer.id, meal)

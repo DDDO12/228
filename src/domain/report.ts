@@ -8,7 +8,7 @@ import {
 } from './attendance'
 import type { AttendanceRecord } from './attendance'
 import { mealLabels, mealOrder } from './meal'
-import type { OfficerMealUse } from './officer'
+import { createOfficerUseHistoryMap, type OfficerMealUse } from './officer'
 
 function formatDateLabel(dateValue: string) {
   const date = new Date(`${dateValue}T00:00:00`)
@@ -69,6 +69,7 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
 
 export function formatOfficerMealReport(dateValue: string, uses: OfficerMealUse[]) {
   const dateLabel = formatDateLabel(dateValue)
+  const histories = createOfficerUseHistoryMap(uses, dateValue)
   const dayUses = uses
     .filter((use) => use.date === dateValue)
     .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
@@ -89,6 +90,13 @@ export function formatOfficerMealReport(dateValue: string, uses: OfficerMealUse[
   })
 
   lines.push(`합계: 총 ${total}명 · 구매 ${ticketTotal}명 · 미구매 ${unpaidTotal}명`)
+  const cumulativeLines = Array.from(new Map(dayUses.map((use) => [use.officerId, use])).values())
+    .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
+    .map((use) => {
+      const history = histories.get(use.officerId)
+      return `${use.officerName} ${history?.dayCount ?? 0}일/${history?.mealCount ?? 0}식`
+    })
+  if (cumulativeLines.length > 0) lines.push('', `개인 누적: ${cumulativeLines.join(', ')}`)
   if (total === 0) lines.push('등록된 간부 식수가 없습니다.')
 
   return lines.join('\n').trim()

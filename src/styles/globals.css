@@ -1828,6 +1828,31 @@ textarea {
   gap: 8px;
 }
 
+.ticket-buyer-history-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ticket-buyer-history-strip div {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 9px 8px;
+  background: var(--color-control);
+  text-align: center;
+}
+
+.ticket-buyer-history-strip span {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ticket-buyer-history-strip strong {
+  font-size: 15px;
+}
+
 .ticket-buyer-meals,
 .ticket-buyer-balance {
   display: grid;
