@@ -42,7 +42,7 @@ export function AttendanceList({
   onClearScheduledException,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
-  const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive' | 'missing'>('choices')
+  const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive' | 'fixedActive' | 'missing'>('choices')
   const [leaveStart, setLeaveStart] = useState(record.date || toDateInputValue())
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const [missingReason, setMissingReason] = useState<MissingReason>('work')
@@ -117,7 +117,13 @@ export function AttendanceList({
     const start = item.exceptionStart ?? record.date ?? toDateInputValue()
     setLeaveStart(start)
     setLeaveUntil(item.exceptionUntil ?? start)
-    setPickerMode(item.status === 'leave' && item.exceptionUntil ? 'leaveActive' : 'choices')
+    setPickerMode(
+      item.status === 'leave' && item.exceptionUntil
+        ? 'leaveActive'
+        : item.status === 'cooking' || item.status === 'room'
+          ? 'fixedActive'
+          : 'choices',
+    )
     setSelectedItem(item)
   }
 
@@ -222,7 +228,11 @@ export function AttendanceList({
                       </span>
                     </button>
                     <div className="attendance-tile-footer">
-                      <button className={`status-action status-action-${status}`} onClick={() => openMissingReason(item)} type="button">
+                      <button
+                        className={`status-action status-action-${status}`}
+                        onClick={() => (status === 'ate' || status === 'missing' ? openMissingReason(item) : openPicker(item))}
+                        type="button"
+                      >
                         {isCompleted ? '취식' : '미취식'}
                       </button>
                       <button
@@ -268,6 +278,8 @@ export function AttendanceList({
                     ? '휴가 기간 설정'
                     : pickerMode === 'leaveActive'
                       ? '휴가 일정 조정'
+                    : pickerMode === 'fixedActive'
+                      ? `${attendanceStatusLabels[selectedItem.status]} 고정`
                       : pickerMode === 'missing'
                         ? '미취식 사유'
                         : '근무/기타 설정'}
@@ -314,6 +326,16 @@ export function AttendanceList({
                     사유 저장
                   </button>
                 </div>
+              </div>
+            ) : pickerMode === 'fixedActive' ? (
+              <div className="leave-date-form">
+                <div className="leave-summary">
+                  <strong>{attendanceStatusLabels[selectedItem.status]} 고정 중</strong>
+                  <span>해제 전까지 매일 취식 완료로 포함됩니다.</span>
+                </div>
+                <button className="danger-button" onClick={clearLeave} type="button">
+                  {attendanceStatusLabels[selectedItem.status]} 해제
+                </button>
               </div>
             ) : pickerMode === 'leaveActive' ? (
               <div className="leave-date-form">

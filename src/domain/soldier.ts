@@ -30,6 +30,7 @@ export interface Soldier {
     | 'corporalCheckup'
     | 'serving'
     | 'cooking'
+    | 'room'
     | 'etc'
   exceptionStart?: string
   exceptionUntil?: string

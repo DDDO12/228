@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   createAttendanceRecord,
-  fixedCookingUntil,
+  fixedExceptionUntil,
   isAteStatus,
-  isWorkdayDate,
   syncAttendanceRecord,
   type AttendanceRecord,
   type AttendanceStatus,
@@ -75,7 +74,7 @@ function migrateSoldiers(soldiers: Soldier[], divisions: Division[]) {
   return soldiers.map((soldier) => ({
     ...soldier,
     divisionId: soldier.divisionId ?? fallbackDivision?.id,
-    exceptionUntil: soldier.exceptionStatus === 'cooking' ? fixedCookingUntil : soldier.exceptionUntil,
+    exceptionUntil: soldier.exceptionStatus === 'cooking' || soldier.exceptionStatus === 'room' ? fixedExceptionUntil : soldier.exceptionUntil,
   }))
 }
 
@@ -152,7 +151,11 @@ export function useAppState() {
       if (storedSections.length === 0 && initialSections.length > 0) await localStore.saveSections(initialSections)
       if (
         storedSoldiers.length === 0 ||
-        storedSoldiers.some((soldier) => !soldier.divisionId || (soldier.exceptionStatus === 'cooking' && soldier.exceptionUntil !== fixedCookingUntil))
+        storedSoldiers.some(
+          (soldier) =>
+            !soldier.divisionId ||
+            ((soldier.exceptionStatus === 'cooking' || soldier.exceptionStatus === 'room') && soldier.exceptionUntil !== fixedExceptionUntil),
+        )
       ) {
         await localStore.saveSoldiers(initialSoldiers)
       }
@@ -247,12 +250,8 @@ export function useAppState() {
       const activeDivisions = divisionsRef.current
       setUndoRecord(activeRecord)
       const now = nowIso()
-      if (status === 'serving' || status === 'cooking') {
+      if (status === 'serving' || status === 'cooking' || status === 'room') {
         const targetItem = activeRecord.records.find((item) => item.soldierId === soldierId)
-        if (status === 'cooking' && !isWorkdayDate(activeRecord.date)) {
-          setToast('취사는 월~금 근무일에 자동 식사완료로 적용됩니다.')
-          return
-        }
         if (status === 'serving') {
           const servingCount = activeRecord.records.filter(
             (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
@@ -268,7 +267,7 @@ export function useAppState() {
                 ...soldier,
                 exceptionStatus: status,
                 exceptionStart: activeRecord.date,
-                exceptionUntil: status === 'cooking' ? fixedCookingUntil : activeRecord.date,
+                exceptionUntil: status === 'cooking' || status === 'room' ? fixedExceptionUntil : activeRecord.date,
                 updatedAt: now,
               }
             : soldier,
@@ -276,7 +275,7 @@ export function useAppState() {
         await persistSoldiers(nextSoldiers)
         const nextRecords = mealOrder.flatMap((itemMeal) => {
           const existing = activeRecords.find((record) => record.date === activeRecord.date && record.meal === itemMeal)
-          if (status !== 'cooking' && !existing && itemMeal !== activeRecord.meal) return []
+          if (status !== 'cooking' && status !== 'room' && !existing && itemMeal !== activeRecord.meal) return []
           const base = existing
             ? syncAttendanceRecord(existing, nextSoldiers, activeDivisions)
             : createAttendanceRecord(activeRecord.date, itemMeal, nextSoldiers, activeDivisions)
@@ -287,8 +286,8 @@ export function useAppState() {
                 ? {
                     ...item,
                     status,
-                    exceptionStart: status === 'cooking' ? undefined : activeRecord.date,
-                    exceptionUntil: status === 'cooking' ? undefined : activeRecord.date,
+                    exceptionStart: status === 'cooking' || status === 'room' ? undefined : activeRecord.date,
+                    exceptionUntil: status === 'cooking' || status === 'room' ? undefined : activeRecord.date,
                     missingReason: undefined,
                     ate: true,
                     updatedAt: now,

@@ -13,6 +13,7 @@ export type AttendanceStatus =
   | 'corporalCheckup'
   | 'serving'
   | 'cooking'
+  | 'room'
   | 'etc'
 
 export type ScheduledExceptionStatus = Exclude<AttendanceStatus, 'ate' | 'missing'>
@@ -30,6 +31,7 @@ export const attendanceStatusLabels: Record<AttendanceStatus, string> = {
   corporalCheckup: '상병건강검진',
   serving: '배식',
   cooking: '취사',
+  room: '입실',
   etc: '기타',
 }
 
@@ -45,6 +47,7 @@ export const attendanceStatuses: AttendanceStatus[] = [
   'corporalCheckup',
   'serving',
   'cooking',
+  'room',
   'etc',
 ]
 
@@ -56,6 +59,7 @@ export const exceptionStatuses: ScheduledExceptionStatus[] = [
   'medical',
   'dutySleep',
   'corporalCheckup',
+  'room',
   'etc',
 ]
 export const missingReasonLabels: Record<MissingReason, string> = {
@@ -65,6 +69,7 @@ export const missingReasonLabels: Record<MissingReason, string> = {
 }
 export const missingReasons: MissingReason[] = ['vehicle', 'work', 'etc']
 export const fixedCookingUntil = '9999-12-31'
+export const fixedExceptionUntil = '9999-12-31'
 
 export function isWorkdayDate(date: string) {
   const day = new Date(`${date}T00:00:00`).getDay()
@@ -111,7 +116,6 @@ function resolveDivision(soldier: Soldier, divisions: Division[]) {
 function resolveScheduledException(soldier: Soldier, date: string) {
   if (!soldier.exceptionStatus || !soldier.exceptionUntil) return undefined
   const start = soldier.exceptionStart ?? date
-  if (soldier.exceptionStatus === 'cooking' && !isWorkdayDate(date)) return undefined
   return start <= date && soldier.exceptionUntil >= date ? soldier.exceptionStatus : undefined
 }
 
@@ -140,8 +144,8 @@ export function createAttendanceRecord(
           divisionName: division?.name ?? '미지정',
           section: soldier.section,
           status,
-          exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
-          exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
+          exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' && scheduledStatus !== 'room' ? soldier.exceptionStart : undefined,
+          exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' && scheduledStatus !== 'room' ? soldier.exceptionUntil : undefined,
           missingReason: undefined,
           ate: isAteStatus(status),
           updatedAt: now,
@@ -173,8 +177,8 @@ export function syncAttendanceRecord(record: AttendanceRecord, soldiers: Soldier
         divisionName: division?.name ?? previous?.divisionName ?? '미지정',
         section: soldier.section,
         status,
-        exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionStart : undefined,
-        exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' ? soldier.exceptionUntil : undefined,
+        exceptionStart: scheduledStatus && scheduledStatus !== 'cooking' && scheduledStatus !== 'room' ? soldier.exceptionStart : undefined,
+        exceptionUntil: scheduledStatus && scheduledStatus !== 'cooking' && scheduledStatus !== 'room' ? soldier.exceptionUntil : undefined,
         missingReason: status === 'missing' ? previous?.missingReason : undefined,
         ate: isAteStatus(status, previous?.ate),
         updatedAt: previous?.updatedAt ?? now,
