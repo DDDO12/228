@@ -44,9 +44,8 @@ function MealMultiSelect({
 }
 
 export function OfficerTicketScreen({ app }: { app: AppState }) {
-  const [name, setName] = useState('')
+  const [buyerName, setBuyerName] = useState('')
   const [purchaseName, setPurchaseName] = useState('')
-  const [useMeals, setUseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
   const [purchaseMeals, setPurchaseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
   const [quantity, setQuantity] = useState(1)
   const [query, setQuery] = useState('')
@@ -58,21 +57,18 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     .filter((use) => use.date === app.date && use.meal === app.meal && matchesSearch(query, [use.officerName]))
     .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
   const unpaidCount = currentUses.filter((use) => use.status === 'unpaid').length
-  const todayUsesByMeal = mealOrder.map((meal) => ({
-    meal,
-    uses: app.officerMealUses
-      .filter((use) => use.date === app.date && use.meal === meal && matchesSearch(query, [use.officerName]))
-      .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko')),
-  }))
+  const visibleBuyers = app.officers
+    .filter((officer) => matchesSearch(query, [officer.name]))
+    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
   const cancellationRecords = app.officerTicketPurchases
     .filter((purchase) => purchase.quantity < 0 && matchesSearch(query, [purchase.officerName]))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 12)
 
-  async function handleUseSubmit(event: React.FormEvent) {
+  async function handleBuyerSubmit(event: React.FormEvent) {
     event.preventDefault()
-    const ok = await app.addOfficerMealUse(name, getSelectedMeals(useMeals))
-    if (ok) setName('')
+    const ok = await app.addOfficerBuyer(buyerName)
+    if (ok) setBuyerName('')
   }
 
   async function handlePurchaseSubmit(event: React.FormEvent) {
@@ -82,6 +78,19 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       setPurchaseName('')
       setQuantity(1)
     }
+  }
+
+  function findTodayUse(officerId: string, meal: MealType) {
+    return app.officerMealUses.find((use) => use.date === app.date && use.meal === meal && use.officerId === officerId)
+  }
+
+  function toggleTodayMeal(officerName: string, officerId: string, meal: MealType) {
+    const existing = findTodayUse(officerId, meal)
+    if (existing) {
+      void app.deleteOfficerMealUse(existing.id)
+      return
+    }
+    void app.addOfficerMealUse(officerName, [meal])
   }
 
   return (
@@ -98,11 +107,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       </section>
 
       <section className="panel control-panel">
-        <form className="officer-use-form" onSubmit={handleUseSubmit}>
-          <input onChange={(event) => setName(event.target.value)} placeholder="오늘 식사한 식권구매자 이름" value={name} />
-          <MealMultiSelect onChange={setUseMeals} selection={useMeals} />
+        <form className="field-line" onSubmit={handleBuyerSubmit}>
+          <input onChange={(event) => setBuyerName(event.target.value)} placeholder="식권구매자 이름 등록" value={buyerName} />
           <button className="primary-button" type="submit">
-            명단 추가
+            구매자 추가
           </button>
         </form>
         <label className="search-box">
@@ -113,36 +121,63 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>오늘 식권구매자 명단</h2>
-          <small>조/중/석 확인</small>
+          <h2>식권구매자 배치</h2>
+          <small>{visibleBuyers.length}명</small>
         </div>
-        <div className="officer-meal-groups">
-          {todayUsesByMeal.map(({ meal, uses }) => (
-            <article key={meal}>
-              <header>
-                <strong>{mealLabels[meal]}</strong>
-                <span>{uses.length}명</span>
-              </header>
-              {uses.length > 0 ? (
-                <div className="officer-use-list">
-                  {uses.map((use) => (
-                    <div className={use.status === 'unpaid' ? 'unpaid' : ''} key={use.id}>
-                      <span>
-                        <strong>{use.officerName}</strong>
-                        <small>{use.status === 'ticket' ? '식권 처리' : '미구매'}</small>
-                      </span>
-                      <button aria-label="삭제" onClick={() => void app.deleteOfficerMealUse(use.id)} type="button">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty-inline">등록 없음</div>
-              )}
-            </article>
-          ))}
-        </div>
+        {visibleBuyers.length > 0 ? (
+          <div className="ticket-buyer-grid">
+            {visibleBuyers.map((officer) => {
+              const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
+              return (
+                <article className="ticket-buyer-card" key={officer.id}>
+                  <header>
+                    <strong>{officer.name}</strong>
+                    <button className="ghost-button" onClick={() => setPurchaseName(officer.name)} type="button">
+                      구매
+                    </button>
+                  </header>
+                  <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
+                    {mealOrder.map((meal) => {
+                      const use = findTodayUse(officer.id, meal)
+                      return (
+                        <button
+                          className={use ? `active ${use.status}` : ''}
+                          key={meal}
+                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                          type="button"
+                        >
+                          <span>{mealLabels[meal]}</span>
+                          <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
+                    {mealOrder.map((meal) => {
+                      const count = balance[meal]
+                      return (
+                        <button
+                          disabled={count <= 0}
+                          key={meal}
+                          onClick={() => void app.cancelOfficerTicket(officer.id, meal, 1)}
+                          title={`${mealLabels[meal]} 식권 1장 취소`}
+                          type="button"
+                        >
+                          <span>
+                            {mealLabels[meal]} {count}
+                          </span>
+                          {count > 0 && <Trash2 size={14} />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="empty-inline">식권구매자를 먼저 등록하세요.</div>
+        )}
       </section>
 
       <section className="panel">
@@ -158,45 +193,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
             구매 등록
           </button>
         </form>
-      </section>
-
-      <section className="panel">
-        <div className="panel-title-row">
-          <h2>식권구매자 잔여 식권</h2>
-          <small>{app.officers.length}명</small>
-        </div>
-        <div className="officer-balance-list">
-          {app.officers
-            .filter((officer) => matchesSearch(query, [officer.name]))
-            .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
-            .map((officer) => {
-              const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
-              return (
-                <article key={officer.id}>
-                  <strong>{officer.name}</strong>
-                  <div className="officer-balance-meals">
-                    {mealOrder.map((meal) => {
-                      const count = balance[meal]
-                      return (
-                        <button
-                          disabled={count <= 0}
-                          key={meal}
-                          onClick={() => void app.cancelOfficerTicket(officer.id, meal, 1)}
-                          title={`${mealLabels[meal]} 식권 1장 취소`}
-                          type="button"
-                        >
-                          <span>
-                            {mealLabels[meal]} {count}
-                          </span>
-                          {count > 0 && <Trash2 size={15} />}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </article>
-              )
-            })}
-        </div>
       </section>
 
       <section className="panel">

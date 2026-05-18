@@ -736,6 +736,20 @@ export function useAppState() {
     [date, meal, officerMealUses, officerTicketPurchases, officers, persistOfficerMealUses, persistOfficers],
   )
 
+  const addOfficerBuyer = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim()
+      if (!trimmed) return false
+      if (officers.some((officer) => officer.name.trim() === trimmed)) {
+        setToast('이미 등록된 식권구매자입니다.')
+        return false
+      }
+      await persistOfficers([...officers, createOfficer(trimmed)])
+      return true
+    },
+    [officers, persistOfficers],
+  )
+
   const deleteOfficerMealUse = useCallback(
     async (id: string) => {
       await persistOfficerMealUses(officerMealUses.filter((use) => use.id !== id))
@@ -898,6 +912,7 @@ export function useAppState() {
     addDivision,
     addInventoryItem,
     addOfficerMealUse,
+    addOfficerBuyer,
     addOfficerTicketPurchase,
     addSection,
     addSoldier,
