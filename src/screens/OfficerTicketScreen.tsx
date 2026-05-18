@@ -123,6 +123,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     void app.addOfficerMealUse(officerName, [meal])
   }
 
+  function purchaseMealTicket(officerName: string, meal: MealType) {
+    void app.addOfficerTicketPurchase(officerName, [meal], 1)
+  }
+
   function toggleBuyerExpanded(officerId: string) {
     setExpandedBuyerIds((ids) => (ids.includes(officerId) ? ids.filter((id) => id !== officerId) : [...ids, officerId]))
   }
@@ -230,18 +234,24 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
                         {mealOrder.map((meal) => {
                           const count = balance[meal]
+                          const use = findTodayUse(officer.id, meal)
+                          const shouldCancel = count > 0 && use?.status !== 'unpaid'
                           return (
                             <button
-                              disabled={count <= 0}
+                              className={shouldCancel ? 'cancel' : 'purchase'}
                               key={meal}
-                              onClick={() => void app.cancelOfficerTicket(officer.id, meal, 1)}
-                              title={`${mealLabels[meal]} 식권 1장 취소`}
+                              onClick={() =>
+                                shouldCancel
+                                  ? void app.cancelOfficerTicket(officer.id, meal, 1)
+                                  : purchaseMealTicket(officer.name, meal)
+                              }
+                              title={shouldCancel ? `${mealLabels[meal]} 식권 1장 취소` : `${mealLabels[meal]} 식권 1장 구매`}
                               type="button"
                             >
                               <span>
-                                {mealLabels[meal]} {count}
+                                {mealLabels[meal]} {shouldCancel ? count : '구매'}
                               </span>
-                              {count > 0 && <Trash2 size={14} />}
+                              {shouldCancel ? <Trash2 size={14} /> : <Ticket size={14} />}
                             </button>
                           )
                         })}

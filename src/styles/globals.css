@@ -1862,14 +1862,16 @@ textarea {
   min-height: 36px;
 }
 
-.ticket-buyer-balance button:not(:disabled) {
+.ticket-buyer-balance button.purchase {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ticket-buyer-balance button.cancel {
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
   color: var(--color-danger);
-}
-
-.ticket-buyer-balance button:disabled {
-  opacity: 0.68;
 }
 
 .buyer-edit-modal {
