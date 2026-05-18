@@ -772,6 +772,22 @@ textarea {
   gap: 6px;
 }
 
+.manager-filter-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.manager-filter-stack > div {
+  display: grid;
+  gap: 6px;
+}
+
+.manager-filter-label {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
 .chip-row button {
   min-height: 38px;
   background: var(--color-control);
