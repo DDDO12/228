@@ -46,6 +46,7 @@ function MealMultiSelect({
 }
 
 export function OfficerTicketScreen({ app }: { app: AppState }) {
+  const expandScope = `${app.date}:${app.meal}`
   const [buyerName, setBuyerName] = useState('')
   const [purchaseName, setPurchaseName] = useState('')
   const [purchaseMeals, setPurchaseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
@@ -53,7 +54,11 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   const [query, setQuery] = useState('')
   const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
   const [editName, setEditName] = useState('')
-  const [expandedBuyerIds, setExpandedBuyerIds] = useState<string[]>([])
+  const [expandedBuyerState, setExpandedBuyerState] = useState<{ scope: string; ids: string[] }>({
+    scope: expandScope,
+    ids: [],
+  })
+  const expandedBuyerIds = expandedBuyerState.scope === expandScope ? expandedBuyerState.ids : []
   const balances = useMemo(
     () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses),
     [app.officerMealUses, app.officerTicketPurchases],
@@ -128,11 +133,20 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   }
 
   function toggleBuyerExpanded(officerId: string) {
-    setExpandedBuyerIds((ids) => (ids.includes(officerId) ? ids.filter((id) => id !== officerId) : [...ids, officerId]))
+    setExpandedBuyerState((current) => {
+      const ids = current.scope === expandScope ? current.ids : []
+      return {
+        scope: expandScope,
+        ids: ids.includes(officerId) ? ids.filter((id) => id !== officerId) : [...ids, officerId],
+      }
+    })
   }
 
   function toggleAllVisibleBuyers() {
-    setExpandedBuyerIds(allVisibleBuyersExpanded ? [] : visibleBuyers.map((officer) => officer.id))
+    setExpandedBuyerState({
+      scope: expandScope,
+      ids: allVisibleBuyersExpanded ? [] : visibleBuyers.map((officer) => officer.id),
+    })
   }
 
   function getBuyerSummary(officerId: string, balance: Record<MealType, number>) {
