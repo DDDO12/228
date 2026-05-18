@@ -9,6 +9,7 @@ import { AttendanceScreen } from './screens/AttendanceScreen'
 import { HomeScreen } from './screens/HomeScreen'
 import { InventoryScreen } from './screens/InventoryScreen'
 import { MemoScreen } from './screens/MemoScreen'
+import { OfficerTicketScreen } from './screens/OfficerTicketScreen'
 
 const routeStorageKey = 'meal-check:last-route'
 
@@ -49,6 +50,7 @@ function App() {
       <AppShell app={app} onRouteChange={setRoute} route={route}>
         {route === 'home' && <HomeScreen app={app} />}
         {route === 'attendance' && <AttendanceScreen app={app} />}
+        {route === 'officer' && <OfficerTicketScreen app={app} />}
         {route === 'inventory' && <InventoryScreen app={app} />}
         {route === 'memo' && <MemoScreen app={app} />}
       </AppShell>

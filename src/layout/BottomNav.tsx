@@ -1,9 +1,10 @@
-import { CalendarDays, Home, ListChecks, Package } from 'lucide-react'
+import { CalendarDays, Home, ListChecks, Package, Ticket } from 'lucide-react'
 import { routes, routeLabels, type RouteId } from '../app/routes'
 
 const icons = {
   home: Home,
   attendance: ListChecks,
+  officer: Ticket,
   inventory: Package,
   memo: CalendarDays,
 }

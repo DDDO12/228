@@ -274,6 +274,36 @@ main {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.home-total-compare {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-total-compare article {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 12px 10px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-panel);
+}
+
+.home-total-compare span,
+.home-total-compare small {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.home-total-compare strong {
+  font-family: var(--font-display);
+  font-size: 22px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
 .panel-title-row {
   display: flex;
   align-items: baseline;
@@ -1481,6 +1511,74 @@ textarea {
   padding: 14px;
 }
 
+.officer-hero-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-white);
+  background: linear-gradient(135deg, #1f2937, var(--color-primary));
+}
+
+.officer-hero-panel span,
+.officer-hero-panel p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.officer-hero-panel h2 {
+  margin-top: 6px;
+  font-size: 32px;
+}
+
+.officer-use-list,
+.officer-balance-list {
+  display: grid;
+  gap: 8px;
+}
+
+.officer-use-list article,
+.officer-balance-list article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--color-control);
+}
+
+.officer-use-list article.unpaid {
+  border: 1px solid var(--color-danger-border);
+  background: var(--color-danger-soft);
+}
+
+.officer-use-list article > div,
+.officer-balance-list article {
+  min-width: 0;
+}
+
+.officer-use-list span,
+.officer-balance-list span {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.officer-use-list button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-control-strong);
+  color: var(--color-danger-strong);
+}
+
+.officer-purchase-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px 72px 110px;
+  gap: 8px;
+}
+
 .soldier-card.inactive {
   opacity: 0.55;
 }
@@ -2104,6 +2202,10 @@ textarea {
   }
 
   .work-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .officer-purchase-form {
     grid-template-columns: 1fr;
   }
 

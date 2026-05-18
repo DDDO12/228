@@ -86,8 +86,13 @@ export function HomeScreen({ app }: { app: AppState }) {
   const currentMealRecord = mealRecords.find(({ meal }) => meal === app.meal)?.record
   const currentMealItems = currentMealRecord?.records ?? []
   const currentMealSummary = summarizeItems(currentMealItems)
+  const currentOfficerUses = app.officerMealUses.filter((use) => use.date === app.date && use.meal === app.meal)
+  const officerTicketCount = currentOfficerUses.filter((use) => use.status === 'ticket').length
+  const officerUnpaidCount = currentOfficerUses.filter((use) => use.status === 'unpaid').length
+  const combinedCompleted = currentMealSummary.completed + currentOfficerUses.length
+  const combinedTotal = currentMealSummary.total + currentOfficerUses.length
   const currentMealProgress =
-    currentMealSummary.total > 0 ? Math.round((currentMealSummary.completed / currentMealSummary.total) * 100) : 0
+    combinedTotal > 0 ? Math.round((combinedCompleted / combinedTotal) * 100) : 0
   const workItems = currentMealItems.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
@@ -131,14 +136,53 @@ export function HomeScreen({ app }: { app: AppState }) {
           </span>
           <h2>{currentMealRecord ? `${currentMealProgress}% 완료` : '기록 없음'}</h2>
           <p>
-            총계 {currentMealSummary.total}명 · 취식 {currentMealSummary.ate}명 · 미취식 {currentMealSummary.missing}명 · 근무/기타{' '}
-            {currentMealSummary.excluded}명
+            용사 {currentMealSummary.total}명 · 간부 {currentOfficerUses.length}명 · 합계 {combinedTotal}명
           </p>
         </div>
         <div className="home-ring">
-          <strong>{currentMealRecord ? currentMealSummary.completed : 0}</strong>
-          <span>/{currentMealSummary.total}</span>
+          <strong>{currentMealRecord ? combinedCompleted : currentOfficerUses.length}</strong>
+          <span>/{combinedTotal}</span>
         </div>
+      </section>
+
+      <section className="home-total-compare" aria-label="용사 간부 합계">
+        <article>
+          <span>용사</span>
+          <strong>{currentMealSummary.completed}/{currentMealSummary.total}</strong>
+          <small>미취식 {currentMealSummary.missing} · 근무/기타 {currentMealSummary.excluded}</small>
+        </article>
+        <article>
+          <span>간부</span>
+          <strong>{currentOfficerUses.length}</strong>
+          <small>식권 {officerTicketCount} · 미구매 {officerUnpaidCount}</small>
+        </article>
+        <article>
+          <span>합계</span>
+          <strong>{combinedCompleted}/{combinedTotal}</strong>
+          <small>현재 식사 기준</small>
+        </article>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title-row">
+          <h2>간부 취식 명단</h2>
+          <small>{mealLabels[app.meal]} 기준</small>
+        </div>
+        {currentOfficerUses.length > 0 ? (
+          <div className="compact-list">
+            {currentOfficerUses
+              .slice()
+              .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
+              .map((use) => (
+                <div key={use.id}>
+                  <span>{use.officerName}</span>
+                  <strong>{use.status === 'ticket' ? '식권' : '미구매'}</strong>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="empty-inline">현재 식사에 등록된 간부가 없습니다.</div>
+        )}
       </section>
 
       {!hasDateRecords && (

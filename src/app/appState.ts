@@ -11,6 +11,12 @@ import {
 } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
+import {
+  createOfficerBalanceMap,
+  type Officer,
+  type OfficerMealUse,
+  type OfficerTicketPurchase,
+} from '../domain/officer'
 import { mealLabels, mealOrder, suggestMealType, type MealType } from '../domain/meal'
 import type { Division, Section, Soldier } from '../domain/soldier'
 import { localStore } from '../storage/localStore'
@@ -33,6 +39,11 @@ function createSection(name: string): Section {
 function createInventoryItem(name: string, unit: string, quantity: number, minimumQuantity: number): InventoryItem {
   const now = nowIso()
   return { id: createId('inventory'), name, unit, quantity, minimumQuantity, createdAt: now, updatedAt: now }
+}
+
+function createOfficer(name: string): Officer {
+  const now = nowIso()
+  return { id: createId('officer'), name, active: true, createdAt: now, updatedAt: now }
 }
 
 const seedDivisions: Division[] = ['1포대', '2포대', '본부'].map(createDivision)
@@ -90,6 +101,9 @@ export function useAppState() {
   const [soldiers, setSoldiers] = useState<Soldier[]>([])
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([])
   const [memos, setMemos] = useState<DayMemo[]>([])
+  const [officers, setOfficers] = useState<Officer[]>([])
+  const [officerMealUses, setOfficerMealUses] = useState<OfficerMealUse[]>([])
+  const [officerTicketPurchases, setOfficerTicketPurchases] = useState<OfficerTicketPurchase[]>([])
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([])
   const [date, setDate] = useState(toDateInputValue())
   const [meal, setMealState] = useState<MealType>(() => suggestMealType())
@@ -125,13 +139,26 @@ export function useAppState() {
 
   useEffect(() => {
     async function load() {
-      const [storedDivisions, storedSections, storedSoldiers, storedRecords, storedInventory, storedMemos] = await Promise.all([
+      const [
+        storedDivisions,
+        storedSections,
+        storedSoldiers,
+        storedRecords,
+        storedInventory,
+        storedMemos,
+        storedOfficers,
+        storedOfficerUses,
+        storedOfficerPurchases,
+      ] = await Promise.all([
         localStore.getDivisions(),
         localStore.getSections(),
         localStore.getSoldiers(),
         localStore.getAttendanceRecords(),
         localStore.getInventoryItems(),
         localStore.getMemos(),
+        localStore.getOfficers(),
+        localStore.getOfficerMealUses(),
+        localStore.getOfficerTicketPurchases(),
       ])
       const initialDivisions = storedDivisions.length > 0 ? migrateDivisions(storedDivisions) : seedDivisions
       const initialSoldiers =
@@ -145,6 +172,9 @@ export function useAppState() {
       setAttendanceRecords(storedRecords)
       setInventoryItems(initialInventory)
       setMemos(storedMemos)
+      setOfficers(storedOfficers)
+      setOfficerMealUses(storedOfficerUses)
+      setOfficerTicketPurchases(storedOfficerPurchases)
       if (storedDivisions.length === 0 || storedDivisions.some((division) => division.name.endsWith('분과'))) {
         await localStore.saveDivisions(initialDivisions)
       }
@@ -220,6 +250,24 @@ export function useAppState() {
   const persistMemos = useCallback(async (next: DayMemo[]) => {
     setMemos(next)
     await localStore.saveMemos(next)
+    setLastSavedAt(nowIso())
+  }, [])
+
+  const persistOfficers = useCallback(async (next: Officer[]) => {
+    setOfficers(next)
+    await localStore.saveOfficers(next)
+    setLastSavedAt(nowIso())
+  }, [])
+
+  const persistOfficerMealUses = useCallback(async (next: OfficerMealUse[]) => {
+    setOfficerMealUses(next)
+    await localStore.saveOfficerMealUses(next)
+    setLastSavedAt(nowIso())
+  }, [])
+
+  const persistOfficerTicketPurchases = useCallback(async (next: OfficerTicketPurchase[]) => {
+    setOfficerTicketPurchases(next)
+    await localStore.saveOfficerTicketPurchases(next)
     setLastSavedAt(nowIso())
   }, [])
 
@@ -672,6 +720,94 @@ export function useAppState() {
     [memos, persistMemos],
   )
 
+  const addOfficerMealUse = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim()
+      if (!trimmed) return false
+      const now = nowIso()
+      const existingOfficer = officers.find((officer) => officer.name.trim() === trimmed)
+      const officer = existingOfficer ?? createOfficer(trimmed)
+      const nextOfficers = existingOfficer ? officers : [...officers, officer]
+      const duplicate = officerMealUses.some(
+        (use) => use.date === date && use.meal === meal && use.officerId === officer.id,
+      )
+      if (duplicate) {
+        setToast('이미 해당 식사에 등록된 간부입니다.')
+        return false
+      }
+      const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses).get(officer.id)
+      const status: OfficerMealUse['status'] = balance && balance[meal] > 0 ? 'ticket' : 'unpaid'
+      const nextUses = [
+        ...officerMealUses,
+        {
+          id: createId('officer-use'),
+          date,
+          meal,
+          officerId: officer.id,
+          officerName: officer.name,
+          status,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]
+      if (!existingOfficer) await persistOfficers(nextOfficers)
+      await persistOfficerMealUses(nextUses)
+      return true
+    },
+    [date, meal, officerMealUses, officerTicketPurchases, officers, persistOfficerMealUses, persistOfficers],
+  )
+
+  const deleteOfficerMealUse = useCallback(
+    async (id: string) => {
+      await persistOfficerMealUses(officerMealUses.filter((use) => use.id !== id))
+    },
+    [officerMealUses, persistOfficerMealUses],
+  )
+
+  const addOfficerTicketPurchase = useCallback(
+    async (name: string, purchaseMeal: MealType, quantity: number) => {
+      const trimmed = name.trim()
+      const safeQuantity = Math.max(0, Math.floor(quantity))
+      if (!trimmed || safeQuantity <= 0) return false
+      const now = nowIso()
+      const existingOfficer = officers.find((officer) => officer.name.trim() === trimmed)
+      const officer = existingOfficer ?? createOfficer(trimmed)
+      const nextOfficers = existingOfficer ? officers : [...officers, officer]
+      const purchase: OfficerTicketPurchase = {
+        id: createId('officer-purchase'),
+        date,
+        meal: purchaseMeal,
+        officerId: officer.id,
+        officerName: officer.name,
+        quantity: safeQuantity,
+        createdAt: now,
+        updatedAt: now,
+      }
+      let remaining = safeQuantity
+      const nextUses = officerMealUses
+        .slice()
+        .sort((a, b) => `${a.date}-${a.createdAt}`.localeCompare(`${b.date}-${b.createdAt}`))
+        .map((use) => {
+          if (remaining <= 0 || use.officerId !== officer.id || use.meal !== purchaseMeal || use.status !== 'unpaid') return use
+          remaining -= 1
+          return { ...use, status: 'ticket' as const, updatedAt: now }
+        })
+      if (!existingOfficer) await persistOfficers(nextOfficers)
+      await persistOfficerTicketPurchases([...officerTicketPurchases, purchase])
+      await persistOfficerMealUses(nextUses)
+      return true
+    },
+    [
+      date,
+      officerMealUses,
+      officerTicketPurchases,
+      officers,
+      persistOfficerMealUses,
+      persistOfficerTicketPurchases,
+      persistOfficers,
+    ],
+  )
+
   const setMeal = useCallback((nextMeal: MealType) => {
     const lockedMeal = suggestMealType()
     if (nextMeal !== lockedMeal) {
@@ -688,6 +824,9 @@ export function useAppState() {
     const nextSections = backup.sections?.length ? backup.sections : deriveSections(nextSoldiers)
     const nextInventory = backup.inventoryItems ?? []
     const nextMemos = backup.memos ?? []
+    const nextOfficers = backup.officers ?? []
+    const nextOfficerUses = backup.officerMealUses ?? []
+    const nextOfficerPurchases = backup.officerTicketPurchases ?? []
     await localStore.importBackup({
       ...backup,
       divisions: nextDivisions,
@@ -695,12 +834,18 @@ export function useAppState() {
       soldiers: nextSoldiers,
       inventoryItems: nextInventory,
       memos: nextMemos,
+      officers: nextOfficers,
+      officerMealUses: nextOfficerUses,
+      officerTicketPurchases: nextOfficerPurchases,
     })
     setDivisions(nextDivisions)
     setSections(nextSections)
     setSoldiers(nextSoldiers)
     setInventoryItems(nextInventory)
     setMemos(nextMemos)
+    setOfficers(nextOfficers)
+    setOfficerMealUses(nextOfficerUses)
+    setOfficerTicketPurchases(nextOfficerPurchases)
     setAttendanceRecords(backup.attendanceRecords)
     setLastSavedAt(nowIso())
   }, [])
@@ -715,8 +860,21 @@ export function useAppState() {
     await persistSoldiers([])
     await persistInventoryItems([])
     await persistMemos([])
+    await persistOfficers([])
+    await persistOfficerMealUses([])
+    await persistOfficerTicketPurchases([])
     await persistRecords([])
-  }, [persistDivisions, persistInventoryItems, persistMemos, persistRecords, persistSections, persistSoldiers])
+  }, [
+    persistDivisions,
+    persistInventoryItems,
+    persistMemos,
+    persistOfficerMealUses,
+    persistOfficerTicketPurchases,
+    persistOfficers,
+    persistRecords,
+    persistSections,
+    persistSoldiers,
+  ])
 
   const undo = useCallback(async () => {
     if (!undoRecord) return
@@ -727,6 +885,8 @@ export function useAppState() {
   return {
     addDivision,
     addInventoryItem,
+    addOfficerMealUse,
+    addOfficerTicketPurchase,
     addSection,
     addSoldier,
     adjustInventoryItem,
@@ -737,6 +897,7 @@ export function useAppState() {
     date,
     deleteDivision,
     deleteInventoryItem,
+    deleteOfficerMealUse,
     deleteSection,
     deleteSoldier,
     divisions,
@@ -746,6 +907,9 @@ export function useAppState() {
     lastSavedAt,
     meal,
     memos,
+    officerMealUses,
+    officerTicketPurchases,
+    officers,
     resetAll,
     resetCurrentRecord,
     saveMemo,

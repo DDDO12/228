@@ -1,6 +1,7 @@
 import type { AttendanceRecord } from '../domain/attendance'
 import type { InventoryItem } from '../domain/inventory'
 import type { DayMemo } from '../domain/memo'
+import type { Officer, OfficerMealUse, OfficerTicketPurchase } from '../domain/officer'
 import type { Division, Section, Soldier } from '../domain/soldier'
 
 export interface AppBackup {
@@ -10,6 +11,9 @@ export interface AppBackup {
   sections?: Section[]
   inventoryItems?: InventoryItem[]
   memos?: DayMemo[]
+  officers?: Officer[]
+  officerMealUses?: OfficerMealUse[]
+  officerTicketPurchases?: OfficerTicketPurchase[]
   soldiers: Soldier[]
   attendanceRecords: AttendanceRecord[]
 }
@@ -27,6 +31,12 @@ export interface StorageAdapter {
   saveSoldiers(soldiers: Soldier[]): Promise<void>
   getAttendanceRecords(): Promise<AttendanceRecord[]>
   saveAttendanceRecords(records: AttendanceRecord[]): Promise<void>
+  getOfficers(): Promise<Officer[]>
+  saveOfficers(officers: Officer[]): Promise<void>
+  getOfficerMealUses(): Promise<OfficerMealUse[]>
+  saveOfficerMealUses(uses: OfficerMealUse[]): Promise<void>
+  getOfficerTicketPurchases(): Promise<OfficerTicketPurchase[]>
+  saveOfficerTicketPurchases(purchases: OfficerTicketPurchase[]): Promise<void>
   exportBackup(): Promise<AppBackup>
   importBackup(backup: AppBackup): Promise<void>
 }
