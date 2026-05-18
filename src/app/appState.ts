@@ -459,32 +459,6 @@ export function useAppState() {
     [getLatestCurrentRecord, setAttendanceStatus],
   )
 
-  const bulkSetAttendance = useCallback(
-    async (status: AttendanceStatus) => {
-      const activeRecord = getLatestCurrentRecord()
-      setUndoRecord(activeRecord)
-      const now = nowIso()
-      await upsertRecord({
-        ...activeRecord,
-        records: activeRecord.records.map((item) =>
-          item.status === 'leave' && item.exceptionUntil
-            ? item
-            : {
-                ...item,
-                status,
-                exceptionStart: undefined,
-                exceptionUntil: undefined,
-                missingReason: undefined,
-                ate: isAteStatus(status),
-                updatedAt: now,
-              },
-        ),
-        updatedAt: now,
-      })
-    },
-    [getLatestCurrentRecord, upsertRecord],
-  )
-
   const addDivision = useCallback(
     async (name: string) => {
       const trimmed = name.trim()
@@ -891,7 +865,6 @@ export function useAppState() {
     addSoldier,
     adjustInventoryItem,
     attendanceRecords,
-    bulkSetAttendance,
     clearScheduledException,
     currentRecord,
     date,

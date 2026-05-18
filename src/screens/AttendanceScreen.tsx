@@ -52,14 +52,6 @@ export function AttendanceScreen({ app }: { app: AppState }) {
             </select>
           </label>
         </div>
-        <div className="bulk-action-row compact-actions">
-          <button className="bulk-action-button bulk-action-ate" onClick={() => void app.bulkSetAttendance('ate')} type="button">
-            전체 취식
-          </button>
-          <button className="bulk-action-button bulk-action-missing" onClick={() => void app.bulkSetAttendance('missing')} type="button">
-            전체 미취식
-          </button>
-        </div>
         <div className="status-filter-row" aria-label="취식 상태 필터">
           {[
             ['all', '전체'],

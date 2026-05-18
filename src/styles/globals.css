@@ -787,35 +787,6 @@ textarea {
   background: var(--color-primary-soft);
 }
 
-.bulk-action-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.compact-actions {
-  gap: 6px;
-}
-
-.bulk-action-button {
-  min-height: 44px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.bulk-action-ate {
-  color: var(--color-white);
-  background: var(--color-primary);
-}
-
-.bulk-action-missing {
-  color: var(--color-danger);
-  background: var(--color-danger-soft);
-  border-color: var(--color-danger-border);
-}
-
 .filter-select-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2186,10 +2157,6 @@ textarea {
   .field-line,
   .metric-grid {
     grid-template-columns: 1fr;
-  }
-
-  .bulk-action-row {
-    grid-template-columns: 1fr 1fr;
   }
 
   .home-hero {
