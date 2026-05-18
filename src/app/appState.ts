@@ -706,7 +706,7 @@ export function useAppState() {
         (use) => use.date === date && use.meal === meal && use.officerId === officer.id,
       )
       if (duplicate) {
-        setToast('이미 해당 식사에 등록된 간부입니다.')
+        setToast('이미 해당 식사에 등록된 식권구매자입니다.')
         return false
       }
       const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses).get(officer.id)

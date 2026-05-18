@@ -136,7 +136,7 @@ export function HomeScreen({ app }: { app: AppState }) {
           </span>
           <h2>{currentMealRecord ? `${currentMealProgress}% 완료` : '기록 없음'}</h2>
           <p>
-            용사 {currentMealSummary.total}명 · 간부 {currentOfficerUses.length}명 · 합계 {combinedTotal}명
+            용사 {currentMealSummary.total}명 · 식권구매자 {currentOfficerUses.length}명 · 합계 {combinedTotal}명
           </p>
         </div>
         <div className="home-ring">
@@ -145,14 +145,14 @@ export function HomeScreen({ app }: { app: AppState }) {
         </div>
       </section>
 
-      <section className="home-total-compare" aria-label="용사 간부 합계">
+      <section className="home-total-compare" aria-label="용사 식권구매자 합계">
         <article>
           <span>용사</span>
           <strong>{currentMealSummary.completed}/{currentMealSummary.total}</strong>
           <small>미취식 {currentMealSummary.missing} · 근무/기타 {currentMealSummary.excluded}</small>
         </article>
         <article>
-          <span>간부</span>
+          <span>식권구매자</span>
           <strong>{currentOfficerUses.length}</strong>
           <small>식권 {officerTicketCount} · 미구매 {officerUnpaidCount}</small>
         </article>
@@ -165,7 +165,7 @@ export function HomeScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>간부 취식 명단</h2>
+          <h2>식권구매자 취식 명단</h2>
           <small>{mealLabels[app.meal]} 기준</small>
         </div>
         {currentOfficerUses.length > 0 ? (
@@ -181,7 +181,7 @@ export function HomeScreen({ app }: { app: AppState }) {
               ))}
           </div>
         ) : (
-          <div className="empty-inline">현재 식사에 등록된 간부가 없습니다.</div>
+          <div className="empty-inline">현재 식사에 등록된 식권구매자가 없습니다.</div>
         )}
       </section>
 

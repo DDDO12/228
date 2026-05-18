@@ -42,7 +42,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           <span>
             {app.date} {mealLabels[app.meal]}
           </span>
-          <h2>간부 {todayUses.length}명</h2>
+          <h2>식권구매자 {todayUses.length}명</h2>
           <p>식권 처리 {todayUses.length - unpaidCount}명 · 미구매 {unpaidCount}명</p>
         </div>
         <Ticket size={36} />
@@ -50,20 +50,20 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel control-panel">
         <form className="field-line" onSubmit={handleUseSubmit}>
-          <input onChange={(event) => setName(event.target.value)} placeholder="오늘 식사한 간부 이름" value={name} />
+          <input onChange={(event) => setName(event.target.value)} placeholder="오늘 식사한 식권구매자 이름" value={name} />
           <button className="primary-button" type="submit">
             명단 추가
           </button>
         </form>
         <label className="search-box">
           <Search size={18} />
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="간부 이름 검색" value={query} />
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="식권구매자 이름 검색" value={query} />
         </label>
       </section>
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>오늘 간부 명단</h2>
+          <h2>오늘 식권구매자 명단</h2>
           <small>{mealLabels[app.meal]} 기준</small>
         </div>
         {todayUses.length > 0 ? (
@@ -81,7 +81,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
             ))}
           </div>
         ) : (
-          <div className="empty-inline">현재 식사에 등록된 간부가 없습니다.</div>
+          <div className="empty-inline">현재 식사에 등록된 식권구매자가 없습니다.</div>
         )}
       </section>
 
@@ -91,7 +91,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           <small>미구매분 먼저 상계</small>
         </div>
         <form className="officer-purchase-form" onSubmit={handlePurchaseSubmit}>
-          <input onChange={(event) => setPurchaseName(event.target.value)} placeholder="구매 간부 이름" value={purchaseName} />
+          <input onChange={(event) => setPurchaseName(event.target.value)} placeholder="식권구매자 이름" value={purchaseName} />
           <select onChange={(event) => setPurchaseMeal(event.target.value as MealType)} value={purchaseMeal}>
             {mealOrder.map((meal) => (
               <option key={meal} value={meal}>
@@ -108,7 +108,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>간부 잔여 식권</h2>
+          <h2>식권구매자 잔여 식권</h2>
           <small>{app.officers.length}명</small>
         </div>
         <div className="officer-balance-list">
