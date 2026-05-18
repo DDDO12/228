@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import { Pencil, Search, Ticket, Trash2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
 import { createOfficerBalanceMap, type Officer } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { matchesSearch } from '../utils/search'
 
 type MealSelection = Record<MealType, boolean>
+
+const koreanNameCollator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' })
 
 function createMealSelection(defaultMeal: MealType): MealSelection {
   return {
@@ -51,17 +53,20 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   const [query, setQuery] = useState('')
   const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
   const [editName, setEditName] = useState('')
+  const [expandedBuyerIds, setExpandedBuyerIds] = useState<string[]>([])
   const balances = useMemo(
     () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses),
     [app.officerMealUses, app.officerTicketPurchases],
   )
   const currentUses = app.officerMealUses
     .filter((use) => use.date === app.date && use.meal === app.meal && matchesSearch(query, [use.officerName]))
-    .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
+    .sort((a, b) => koreanNameCollator.compare(a.officerName, b.officerName))
   const unpaidCount = currentUses.filter((use) => use.status === 'unpaid').length
   const visibleBuyers = app.officers
     .filter((officer) => matchesSearch(query, [officer.name]))
-    .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+    .sort((a, b) => koreanNameCollator.compare(a.name, b.name))
+  const allVisibleBuyersExpanded =
+    visibleBuyers.length > 0 && visibleBuyers.every((officer) => expandedBuyerIds.includes(officer.id))
   const cancellationRecords = app.officerTicketPurchases
     .filter((purchase) => purchase.quantity < 0 && matchesSearch(query, [purchase.officerName]))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -118,6 +123,26 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     void app.addOfficerMealUse(officerName, [meal])
   }
 
+  function toggleBuyerExpanded(officerId: string) {
+    setExpandedBuyerIds((ids) => (ids.includes(officerId) ? ids.filter((id) => id !== officerId) : [...ids, officerId]))
+  }
+
+  function toggleAllVisibleBuyers() {
+    setExpandedBuyerIds(allVisibleBuyersExpanded ? [] : visibleBuyers.map((officer) => officer.id))
+  }
+
+  function getBuyerSummary(officerId: string, balance: Record<MealType, number>) {
+    const states = mealOrder
+      .map((meal) => {
+        const use = findTodayUse(officerId, meal)
+        if (use) return `${mealLabels[meal]} ${use.status === 'ticket' ? '식권' : '미구매'}`
+        if (balance[meal] > 0) return `${mealLabels[meal]} ${balance[meal]}`
+        return ''
+      })
+      .filter(Boolean)
+    return states.length > 0 ? states.join(' · ') : '미등록'
+  }
+
   return (
     <div className="stack">
       <section className="panel officer-hero-panel">
@@ -147,16 +172,34 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       <section className="panel">
         <div className="panel-title-row">
           <h2>식권구매자 배치</h2>
-          <small>{visibleBuyers.length}명</small>
+          <div className="ticket-buyer-list-tools">
+            <small>{visibleBuyers.length}명</small>
+            <button disabled={visibleBuyers.length === 0} onClick={toggleAllVisibleBuyers} type="button">
+              {allVisibleBuyersExpanded ? '전체 접기' : '전체 펼치기'}
+            </button>
+          </div>
         </div>
         {visibleBuyers.length > 0 ? (
           <div className="ticket-buyer-grid">
             {visibleBuyers.map((officer) => {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
+              const isExpanded = expandedBuyerIds.includes(officer.id)
+              const summary = getBuyerSummary(officer.id, balance)
               return (
-                <article className="ticket-buyer-card" key={officer.id}>
+                <article className={`ticket-buyer-card ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
                   <header>
-                    <strong>{officer.name}</strong>
+                    <button
+                      aria-expanded={isExpanded}
+                      className="ticket-buyer-toggle"
+                      onClick={() => toggleBuyerExpanded(officer.id)}
+                      type="button"
+                    >
+                      <span>
+                        <strong>{officer.name}</strong>
+                        <small>{summary}</small>
+                      </span>
+                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                    </button>
                     <div className="ticket-buyer-actions">
                       <button aria-label={`${officer.name} 이름 수정`} onClick={() => openEditBuyer(officer)} type="button">
                         <Pencil size={17} />
@@ -166,41 +209,45 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       </button>
                     </div>
                   </header>
-                  <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
-                    {mealOrder.map((meal) => {
-                      const use = findTodayUse(officer.id, meal)
-                      return (
-                        <button
-                          className={use ? `active ${use.status}` : ''}
-                          key={meal}
-                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
-                          type="button"
-                        >
-                          <span>{mealLabels[meal]}</span>
-                          <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
-                    {mealOrder.map((meal) => {
-                      const count = balance[meal]
-                      return (
-                        <button
-                          disabled={count <= 0}
-                          key={meal}
-                          onClick={() => void app.cancelOfficerTicket(officer.id, meal, 1)}
-                          title={`${mealLabels[meal]} 식권 1장 취소`}
-                          type="button"
-                        >
-                          <span>
-                            {mealLabels[meal]} {count}
-                          </span>
-                          {count > 0 && <Trash2 size={14} />}
-                        </button>
-                      )
-                    })}
-                  </div>
+                  {isExpanded && (
+                    <div className="ticket-buyer-detail">
+                      <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
+                        {mealOrder.map((meal) => {
+                          const use = findTodayUse(officer.id, meal)
+                          return (
+                            <button
+                              className={use ? `active ${use.status}` : ''}
+                              key={meal}
+                              onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                              type="button"
+                            >
+                              <span>{mealLabels[meal]}</span>
+                              <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
+                        {mealOrder.map((meal) => {
+                          const count = balance[meal]
+                          return (
+                            <button
+                              disabled={count <= 0}
+                              key={meal}
+                              onClick={() => void app.cancelOfficerTicket(officer.id, meal, 1)}
+                              title={`${mealLabels[meal]} 식권 1장 취소`}
+                              type="button"
+                            >
+                              <span>
+                                {mealLabels[meal]} {count}
+                              </span>
+                              {count > 0 && <Trash2 size={14} />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </article>
               )
             })}
