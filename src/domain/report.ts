@@ -7,7 +7,13 @@ import {
   type AttendanceStatus,
 } from './attendance'
 import type { AttendanceRecord } from './attendance'
-import { mealLabels } from './meal'
+import { mealLabels, mealOrder } from './meal'
+import type { OfficerMealUse } from './officer'
+
+function formatDateLabel(dateValue: string) {
+  const date = new Date(`${dateValue}T00:00:00`)
+  return `${date.getMonth() + 1}월 ${date.getDate()}일`
+}
 
 function orderedDivisionNames(record: AttendanceRecord) {
   return Array.from(new Set(record.records.map((item) => item.divisionName)))
@@ -19,8 +25,7 @@ function countByStatus(record: AttendanceRecord, status: AttendanceStatus) {
 
 export function formatKakaoReport(record: AttendanceRecord, includeMissing = true, includeDivisionDetails = true) {
   const total = record.records.length
-  const date = new Date(`${record.date}T00:00:00`)
-  const dateLabel = `${date.getMonth() + 1}월 ${date.getDate()}일`
+  const dateLabel = formatDateLabel(record.date)
 
   const lines = [`[${dateLabel} ${mealLabels[record.meal]} 취식 현황]`, '']
 
@@ -60,4 +65,31 @@ export function formatKakaoReport(record: AttendanceRecord, includeMissing = tru
   }
 
   return lines.join('\n')
+}
+
+export function formatOfficerMealReport(dateValue: string, uses: OfficerMealUse[]) {
+  const dateLabel = formatDateLabel(dateValue)
+  const dayUses = uses
+    .filter((use) => use.date === dateValue)
+    .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
+  const total = dayUses.length
+  const ticketTotal = dayUses.filter((use) => use.status === 'ticket').length
+  const unpaidTotal = dayUses.filter((use) => use.status === 'unpaid').length
+  const lines = [`[${dateLabel} 간부 식수 현황]`, '']
+
+  mealOrder.forEach((meal) => {
+    const mealUses = dayUses.filter((use) => use.meal === meal)
+    const ticketNames = mealUses.filter((use) => use.status === 'ticket').map((use) => use.officerName)
+    const unpaidNames = mealUses.filter((use) => use.status === 'unpaid').map((use) => use.officerName)
+    lines.push(`${mealLabels[meal]}: 총 ${mealUses.length}명 · 구매 ${ticketNames.length}명 · 미구매 ${unpaidNames.length}명`)
+    if (ticketNames.length > 0) lines.push(`- 구매: ${ticketNames.join(', ')}`)
+    if (unpaidNames.length > 0) lines.push(`- 미구매: ${unpaidNames.join(', ')}`)
+    if (mealUses.length === 0) lines.push('- 없음')
+    lines.push('')
+  })
+
+  lines.push(`합계: 총 ${total}명 · 구매 ${ticketTotal}명 · 미구매 ${unpaidTotal}명`)
+  if (total === 0) lines.push('등록된 간부 식수가 없습니다.')
+
+  return lines.join('\n').trim()
 }
