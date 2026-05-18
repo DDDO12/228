@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type PointerEvent } from 'react'
+import { useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { Check, ChevronRight, X } from 'lucide-react'
 import {
   attendanceStatusLabels,
@@ -40,25 +40,40 @@ function SwipeStatusAction({
   onComplete: () => void
   tone?: 'danger' | 'primary'
 }) {
-  const [startX, setStartX] = useState<number>()
+  const startXRef = useRef<number | null>(null)
+  const maxDragRef = useRef(72)
+  const currentDragRef = useRef(0)
+  const thresholdRef = useRef(64)
   const [dragX, setDragX] = useState(0)
-  const maxDrag = 112
-  const threshold = 76
+  const [threshold, setThreshold] = useState(64)
 
   function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
-    setStartX(event.clientX)
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nextMaxDrag = Math.max(72, rect.width - 48)
+    const nextThreshold = Math.max(64, nextMaxDrag * 0.6)
+    maxDragRef.current = nextMaxDrag
+    thresholdRef.current = nextThreshold
+    setThreshold(nextThreshold)
+    startXRef.current = event.clientX
+    currentDragRef.current = 0
     setDragX(0)
     event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
-    if (startX === undefined) return
-    setDragX(Math.max(0, Math.min(maxDrag, event.clientX - startX)))
+    if (startXRef.current === null) return
+    const nextDrag = Math.max(0, Math.min(maxDragRef.current, event.clientX - startXRef.current))
+    currentDragRef.current = nextDrag
+    setDragX(nextDrag)
   }
 
-  function handlePointerEnd() {
-    if (dragX >= threshold) onComplete()
-    setStartX(undefined)
+  function handlePointerEnd(event: PointerEvent<HTMLButtonElement>) {
+    if (currentDragRef.current >= thresholdRef.current) onComplete()
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    startXRef.current = null
+    currentDragRef.current = 0
     setDragX(0)
   }
 
@@ -74,7 +89,9 @@ function SwipeStatusAction({
       type="button"
     >
       <span className="swipe-confirm-track">{label}</span>
-      <span className="swipe-confirm-thumb">›</span>
+      <span className="swipe-confirm-thumb">
+        <ChevronRight size={20} strokeWidth={3} />
+      </span>
     </button>
   )
 }
