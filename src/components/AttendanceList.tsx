@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type CSSProperties, type PointerEvent } from 'react'
 import { Check, ChevronRight, X } from 'lucide-react'
 import {
   attendanceStatusLabels,
@@ -29,6 +29,46 @@ interface AttendanceListProps {
     until: string,
   ) => void
   onClearScheduledException: (soldierId: string) => void
+}
+
+function SwipeAteAction({ onComplete }: { onComplete: () => void }) {
+  const [startX, setStartX] = useState<number>()
+  const [dragX, setDragX] = useState(0)
+  const maxDrag = 112
+  const threshold = 76
+
+  function handlePointerDown(event: PointerEvent<HTMLButtonElement>) {
+    setStartX(event.clientX)
+    setDragX(0)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLButtonElement>) {
+    if (startX === undefined) return
+    setDragX(Math.max(0, Math.min(maxDrag, event.clientX - startX)))
+  }
+
+  function handlePointerEnd() {
+    if (dragX >= threshold) onComplete()
+    setStartX(undefined)
+    setDragX(0)
+  }
+
+  return (
+    <button
+      aria-label="오른쪽으로 밀어서 취식으로 변경"
+      className={`swipe-confirm ${dragX >= threshold ? 'ready' : ''}`}
+      onPointerCancel={handlePointerEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+      style={{ '--swipe-x': `${dragX}px` } as CSSProperties & Record<'--swipe-x', string>}
+      type="button"
+    >
+      <span className="swipe-confirm-track">밀어서 취식 변경</span>
+      <span className="swipe-confirm-thumb">›</span>
+    </button>
+  )
 }
 
 export function AttendanceList({
@@ -319,9 +359,7 @@ export function AttendanceList({
                   ))}
                 </div>
                 <div className="modal-actions">
-                  <button className="secondary-button" onClick={markSelectedAte} type="button">
-                    취식으로 변경
-                  </button>
+                  <SwipeAteAction onComplete={markSelectedAte} />
                   <button className="primary-button" onClick={saveMissingReason} type="button">
                     사유 저장
                   </button>
