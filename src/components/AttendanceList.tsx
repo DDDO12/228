@@ -1,4 +1,4 @@
-import { useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { Check, ChevronRight, X } from 'lucide-react'
 import {
   attendanceStatusLabels,
@@ -17,7 +17,7 @@ import { matchesSearch } from '../utils/search'
 
 interface AttendanceListProps {
   divisionId: string | 'all'
-  statusFilter: 'all' | 'ate' | 'missing' | 'work'
+  statusFilter: 'all' | 'missing' | 'work'
   query: string
   record: AttendanceRecord
   section: string | 'all'
@@ -29,6 +29,7 @@ interface AttendanceListProps {
     until: string,
   ) => void
   onClearScheduledException: (soldierId: string) => void
+  onResetFilters?: () => void
 }
 
 function SwipeStatusAction({
@@ -105,6 +106,7 @@ export function AttendanceList({
   onSetStatus,
   onSetScheduledException,
   onClearScheduledException,
+  onResetFilters,
 }: AttendanceListProps) {
   const [selectedItem, setSelectedItem] = useState<AttendanceItem>()
   const [pickerMode, setPickerMode] = useState<'choices' | 'leave' | 'leaveActive' | 'fixedActive' | 'missing'>('choices')
@@ -112,14 +114,10 @@ export function AttendanceList({
   const [leaveUntil, setLeaveUntil] = useState(record.date || toDateInputValue())
   const [missingReason, setMissingReason] = useState<MissingReason>('work')
   const [bulkSelectedIds, setBulkSelectedIds] = useState<string[]>([])
-  const items = record.records
+  const scopedItems = record.records
     .filter((item) => {
-      const status = normalizeAttendanceStatus(item.status, item.ate)
       if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
       if (section !== 'all' && (item.section ?? '') !== section) return false
-      if (statusFilter === 'ate' && status !== 'ate') return false
-      if (statusFilter === 'missing' && status !== 'missing') return false
-      if (statusFilter === 'work' && (status === 'ate' || status === 'missing')) return false
       return matchesSearch(query, [item.name, item.divisionName, item.section])
     })
     .sort((a, b) => {
@@ -136,13 +134,13 @@ export function AttendanceList({
         a.name.localeCompare(b.name, 'ko')
       )
     })
-  const ateCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
-  const missingCount = items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
-  const exceptionCount = items.filter((item) => {
+  const ateCount = scopedItems.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
+  const missingCount = scopedItems.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
+  const exceptionCount = scopedItems.filter((item) => {
     const status = normalizeAttendanceStatus(item.status, item.ate)
     return status !== 'ate' && status !== 'missing'
   }).length
-  const sectionGroups = items.reduce<Array<{ sectionName: string; items: AttendanceItem[] }>>((groups, item) => {
+  const sectionGroups = scopedItems.reduce<Array<{ sectionName: string; items: AttendanceItem[] }>>((groups, item) => {
     const sectionName = item.section?.trim() || '분과 미지정'
     const existing = groups.find((group) => group.sectionName === sectionName)
     if (existing) existing.items.push(item)
@@ -164,18 +162,6 @@ export function AttendanceList({
     setSelectedItem(item)
     setMissingReason(item.missingReason ?? 'work')
     setPickerMode('missing')
-  }
-
-  function saveMissingReason() {
-    if (!selectedItem) return
-    onSetStatus(selectedItem.soldierId, 'missing', missingReason)
-    closePicker()
-  }
-
-  function markSelectedAte() {
-    if (!selectedItem) return
-    onSetStatus(selectedItem.soldierId, 'ate')
-    closePicker()
   }
 
   function markSelectedMissing() {
@@ -202,6 +188,16 @@ export function AttendanceList({
     setSelectedItem(undefined)
     setPickerMode('choices')
   }
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      if (selectedItem) { closePicker(); return }
+      if (bulkSelectedIds.length > 0) setBulkSelectedIds([])
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [selectedItem, bulkSelectedIds.length])
 
   function updateLeaveStart(value: string) {
     setLeaveStart(value)
@@ -237,11 +233,23 @@ export function AttendanceList({
     setBulkSelectedIds([])
   }
 
-  if (items.length === 0) {
-    return <div className="empty-state">조건에 맞는 인원이 없습니다.</div>
+  if (scopedItems.length === 0) {
+    const activeFilters = [
+      query && `"${query}"`,
+      divisionId !== 'all' && '포대 필터',
+      section !== 'all' && '분과 필터',
+      statusFilter !== 'all' && '상태 필터',
+    ].filter(Boolean)
+    return (
+      <div className="empty-state-detailed">
+        <p>조건에 맞는 인원이 없습니다.</p>
+        {activeFilters.length > 0 && <small>{activeFilters.join(' · ')} 적용 중</small>}
+        {onResetFilters && activeFilters.length > 0 && (
+          <button onClick={onResetFilters} type="button">필터 초기화</button>
+        )}
+      </div>
+    )
   }
-
-  const selectedItemStatus = selectedItem ? normalizeAttendanceStatus(selectedItem.status, selectedItem.ate) : undefined
 
   return (
     <>
@@ -260,18 +268,41 @@ export function AttendanceList({
         </div>
         <div>
           <span>현재원</span>
-          <strong>{items.length}명</strong>
+          <strong>{scopedItems.length}명</strong>
         </div>
       </section>
-      <div className="attendance-section-list">
-        {sectionGroups.map((group) => (
-          <section className="attendance-section-group" key={group.sectionName}>
-            <header>
-              <strong>{group.sectionName}</strong>
-              <span>{group.items.length}명</span>
+      <div className={`attendance-section-list${bulkSelectedIds.length > 0 ? ' has-bulk-bar' : ''}`}>
+        {sectionGroups.map((group) => {
+          const groupAteCount = group.items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'ate').length
+          const groupMissingCount = group.items.filter((item) => normalizeAttendanceStatus(item.status, item.ate) === 'missing').length
+          const groupWorkCount = group.items.length - groupAteCount - groupMissingCount
+          const groupComplete = groupMissingCount === 0 && groupWorkCount === 0
+          const visibleItems = groupComplete && statusFilter === 'all' ? [] : group.items.filter((item) => {
+            const status = normalizeAttendanceStatus(item.status, item.ate)
+            if (statusFilter === 'missing') return status === 'missing'
+            if (statusFilter === 'work') return status !== 'ate' && status !== 'missing'
+            return true
+          })
+          const completeLabel =
+            groupComplete
+              ? '식사완료'
+              : statusFilter === 'work' && groupWorkCount === 0
+                ? '근무/기타 없음'
+                : undefined
+          return (
+          <section className={`attendance-section-group ${completeLabel ? 'section-complete' : ''}`} key={group.sectionName}>
+            <header className="attendance-section-header">
+              <div>
+                <strong>{group.sectionName}</strong>
+                <span>
+                  총원 {group.items.length} · 취식 {groupAteCount} · 미취식 {groupMissingCount}
+                  {groupWorkCount > 0 ? ` · 근무/기타 ${groupWorkCount}` : ''}
+                </span>
+              </div>
+              {completeLabel && <em>{completeLabel}</em>}
             </header>
             <div className="attendance-grid">
-              {group.items.map((item) => {
+              {visibleItems.map((item) => {
                 const status = normalizeAttendanceStatus(item.status, item.ate)
                 const isCompleted = isAteStatus(item.status, item.ate)
                 const isLeaveActive = status === 'leave' && Boolean(item.exceptionUntil)
@@ -303,7 +334,7 @@ export function AttendanceList({
                     <div className="attendance-tile-footer">
                       <button
                         className={`status-action status-action-${status}`}
-                        onClick={() => (status === 'ate' || status === 'missing' ? openMissingReason(item) : openPicker(item))}
+                        onClick={() => status === 'missing' ? void onSetStatus(item.soldierId, 'ate') : status === 'ate' ? openMissingReason(item) : openPicker(item)}
                         type="button"
                       >
                         {isCompleted ? '취식' : '미취식'}
@@ -321,11 +352,11 @@ export function AttendanceList({
               })}
             </div>
           </section>
-        ))}
+        )})}
       </div>
 
       {bulkSelectedIds.length > 0 && (
-        <section className="bulk-selection-panel" aria-label="선택 인원 취식 적용">
+        <section aria-live="polite" className="bulk-selection-panel" role="status">
           <div className="bulk-selection-title">
             <strong>{bulkSelectedIds.length}명 선택</strong>
             <span>취식 처리할 인원</span>
@@ -354,9 +385,7 @@ export function AttendanceList({
                     : pickerMode === 'fixedActive'
                       ? `${attendanceStatusLabels[selectedItem.status]} 고정`
                       : pickerMode === 'missing'
-                        ? selectedItemStatus === 'ate'
-                          ? '미취식 전환'
-                          : '미취식 사유'
+                        ? '미취식 전환'
                         : '근무/기타 설정'}
                 </span>
                 <h2>{selectedItem.name}</h2>
@@ -393,17 +422,12 @@ export function AttendanceList({
                     </button>
                   ))}
                 </div>
-                <div className={`modal-actions ${selectedItemStatus === 'ate' ? 'single-action' : ''}`}>
+                <div className="modal-actions single-action">
                   <SwipeStatusAction
-                    label={selectedItemStatus === 'ate' ? '밀어서 미취식 변경' : '밀어서 취식 변경'}
-                    onComplete={selectedItemStatus === 'ate' ? markSelectedMissing : markSelectedAte}
-                    tone={selectedItemStatus === 'ate' ? 'danger' : 'primary'}
+                    label="밀어서 미취식 변경"
+                    onComplete={markSelectedMissing}
+                    tone="danger"
                   />
-                  {selectedItemStatus !== 'ate' && (
-                    <button className="primary-button" onClick={saveMissingReason} type="button">
-                      사유 저장
-                    </button>
-                  )}
                 </div>
               </div>
             ) : pickerMode === 'fixedActive' ? (

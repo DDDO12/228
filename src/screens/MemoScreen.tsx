@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState, type FormEvent } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { CalendarPlus, ChevronLeft, ChevronRight, Save, Search, Trash2, X } from 'lucide-react'
+import { CalendarPlus, Check, ChevronLeft, ChevronRight, Save, Search, ShoppingCart, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { getDivisionName, type Soldier } from '../domain/soldier'
 import { toDateInputValue } from '../utils/date'
 import { matchesSearch } from '../utils/search'
@@ -37,8 +38,13 @@ export function MemoScreen({ app }: { app: AppState }) {
   const today = new Date()
   const [visibleMonth, setVisibleMonth] = useState(new Date(today.getFullYear(), today.getMonth(), 1))
   const [selectedDate, setSelectedDate] = useState(toDateInputValue())
-  const selectedMemo = app.memos.find((memo) => memo.date === selectedDate)?.content ?? ''
+  const selectedMemoEntry = app.memos.find((memo) => memo.date === selectedDate)
+  const selectedMemo = selectedMemoEntry?.content ?? ''
+  const shoppingItems = selectedMemoEntry?.shoppingItems ?? []
   const [draft, setDraft] = useState(selectedMemo)
+  const [shoppingName, setShoppingName] = useState('')
+  const [shoppingQuantity, setShoppingQuantity] = useState('')
+  const [shoppingPurpose, setShoppingPurpose] = useState('')
   const [leaveOpen, setLeaveOpen] = useState(false)
   const [leaveQuery, setLeaveQuery] = useState('')
   const [leaveSoldierId, setLeaveSoldierId] = useState('')
@@ -46,6 +52,7 @@ export function MemoScreen({ app }: { app: AppState }) {
   const [leaveUntil, setLeaveUntil] = useState(selectedDate)
   const leavePressTimer = useRef<number | undefined>(undefined)
   const suppressLeaveClick = useRef(false)
+  const [confirmDeleteLeave, setConfirmDeleteLeave] = useState<Soldier>()
   const memoDates = useMemo(() => new Set(app.memos.map((memo) => memo.date)), [app.memos])
   const days = buildCalendarDays(visibleMonth)
   const activeSoldiers = useMemo(
@@ -82,6 +89,20 @@ export function MemoScreen({ app }: { app: AppState }) {
   async function save() {
     await app.saveMemo(selectedDate, draft)
     app.setToast('메모를 저장했습니다.')
+  }
+
+  async function addShoppingItem(event: FormEvent) {
+    event.preventDefault()
+    const ok = await app.addMemoShoppingItem(selectedDate, {
+      name: shoppingName,
+      quantity: shoppingQuantity,
+      purpose: shoppingPurpose,
+    })
+    if (ok) {
+      setShoppingName('')
+      setShoppingQuantity('')
+      setShoppingPurpose('')
+    }
   }
 
   function openLeaveModal() {
@@ -132,8 +153,7 @@ export function MemoScreen({ app }: { app: AppState }) {
   }
 
   function deleteLeave(soldier: Soldier) {
-    const ok = window.confirm(`${soldier.name} 휴가 일정을 삭제할까요?`)
-    if (ok) void app.clearSoldierLeave(soldier.id)
+    setConfirmDeleteLeave(soldier)
   }
 
   return (
@@ -154,6 +174,10 @@ export function MemoScreen({ app }: { app: AppState }) {
           {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
             <span key={day}>{day}</span>
           ))}
+        </div>
+        <div className="calendar-legend">
+          <span><i className="memo-dot" />메모</span>
+          <span><i className="leave-dot" />휴가</span>
         </div>
         <div className="memo-calendar-grid">
           {days.map((day) => {
@@ -221,6 +245,48 @@ export function MemoScreen({ app }: { app: AppState }) {
         <button className="primary-button" onClick={() => void save()} type="button">
           <Save size={18} /> 메모 저장
         </button>
+      </section>
+
+      <section className="panel memo-shopping-panel">
+        <div className="panel-title-row">
+          <h2>사야할 것</h2>
+          <small>{shoppingItems.filter((item) => !item.completed).length}개 남음</small>
+        </div>
+        <form className="memo-shopping-form" onSubmit={addShoppingItem}>
+          <input onChange={(event) => setShoppingName(event.target.value)} placeholder="품명" value={shoppingName} />
+          <input onChange={(event) => setShoppingQuantity(event.target.value)} placeholder="수량" value={shoppingQuantity} />
+          <input onChange={(event) => setShoppingPurpose(event.target.value)} placeholder="용도" value={shoppingPurpose} />
+          <button className="primary-button" type="submit">
+            <ShoppingCart size={18} /> 추가
+          </button>
+        </form>
+        {shoppingItems.length > 0 ? (
+          <div className="memo-shopping-list">
+            {shoppingItems.map((item) => (
+              <article className={item.completed ? 'completed' : ''} key={item.id}>
+                <button
+                  aria-label={`${item.name} 구매 완료 전환`}
+                  onClick={() => void app.updateMemoShoppingItem(selectedDate, item.id, { completed: !item.completed })}
+                  type="button"
+                >
+                  <Check size={16} />
+                </button>
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>
+                    {item.quantity || '수량 미입력'}
+                    {item.purpose ? ` · ${item.purpose}` : ''}
+                  </span>
+                </div>
+                <button aria-label={`${item.name} 삭제`} onClick={() => void app.deleteMemoShoppingItem(selectedDate, item.id)} type="button">
+                  <Trash2 size={16} />
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-inline">구매할 항목을 따로 적어두세요.</div>
+        )}
       </section>
 
       <motion.button
@@ -310,6 +376,18 @@ export function MemoScreen({ app }: { app: AppState }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {confirmDeleteLeave && (
+        <ConfirmDialog
+          body="해당 인원의 휴가 일정이 삭제됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteLeave(undefined)}
+          onConfirm={() => {
+            void app.clearSoldierLeave(confirmDeleteLeave.id)
+            setConfirmDeleteLeave(undefined)
+          }}
+          title={`${confirmDeleteLeave.name} 휴가 일정을 삭제할까요?`}
+        />
+      )}
     </div>
   )
 }

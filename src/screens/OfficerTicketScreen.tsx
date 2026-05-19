@@ -2,60 +2,21 @@ import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronRight, Pencil, Plus, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { createOfficerBalanceMap, createOfficerUseHistoryMap, type Officer, type OfficerUseHistory } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { matchesSearch } from '../utils/search'
 
-type MealSelection = Record<MealType, boolean>
-
 const koreanNameCollator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' })
-
-function createMealSelection(defaultMeal: MealType): MealSelection {
-  return {
-    breakfast: defaultMeal === 'breakfast',
-    lunch: defaultMeal === 'lunch',
-    dinner: defaultMeal === 'dinner',
-  }
-}
-
-function getSelectedMeals(selection: MealSelection) {
-  return mealOrder.filter((meal) => selection[meal])
-}
-
-function MealMultiSelect({
-  selection,
-  onChange,
-}: {
-  selection: MealSelection
-  onChange: (next: MealSelection) => void
-}) {
-  function toggle(meal: MealType) {
-    const selectedCount = getSelectedMeals(selection).length
-    if (selection[meal] && selectedCount === 1) return
-    onChange({ ...selection, [meal]: !selection[meal] })
-  }
-
-  return (
-    <div className="meal-multi-row" aria-label="식사 선택">
-      {mealOrder.map((meal) => (
-        <button className={selection[meal] ? 'active' : ''} key={meal} onClick={() => toggle(meal)} type="button">
-          {mealLabels[meal]}
-        </button>
-      ))}
-    </div>
-  )
-}
 
 export function OfficerTicketScreen({ app }: { app: AppState }) {
   const expandScope = `${app.date}:${app.meal}`
   const [buyerName, setBuyerName] = useState('')
-  const [purchaseName, setPurchaseName] = useState('')
-  const [purchaseMeals, setPurchaseMeals] = useState<MealSelection>(() => createMealSelection(app.meal))
-  const [quantity, setQuantity] = useState(1)
   const [query, setQuery] = useState('')
   const [addBuyerOpen, setAddBuyerOpen] = useState(false)
   const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
   const [editName, setEditName] = useState('')
+  const [confirmDeleteBuyer, setConfirmDeleteBuyer] = useState<Officer>()
   const [expandedBuyerState, setExpandedBuyerState] = useState<{ scope: string; ids: string[] }>({
     scope: expandScope,
     ids: [],
@@ -89,15 +50,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     }
   }
 
-  async function handlePurchaseSubmit(event: React.FormEvent) {
-    event.preventDefault()
-    const ok = await app.addOfficerTicketPurchase(purchaseName, getSelectedMeals(purchaseMeals), quantity)
-    if (ok) {
-      setPurchaseName('')
-      setQuantity(1)
-    }
-  }
-
   function openEditBuyer(officer: Officer) {
     setEditingBuyer({ id: officer.id, name: officer.name })
     setEditName(officer.name)
@@ -116,9 +68,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   }
 
   function handleDeleteBuyer(officer: Officer) {
-    const ok = window.confirm(`${officer.name} 식권구매자를 삭제할까요?\n오늘 배치와 구매/취소 내역도 함께 삭제됩니다.`)
-    if (!ok) return
-    void app.deleteOfficerBuyer(officer.id)
+    setConfirmDeleteBuyer(officer)
   }
 
   function findTodayUse(officerId: string, meal: MealType) {
@@ -305,21 +255,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>식권 구매</h2>
-          <small>미구매분 먼저 상계</small>
-        </div>
-        <form className="officer-purchase-form" onSubmit={handlePurchaseSubmit}>
-          <input onChange={(event) => setPurchaseName(event.target.value)} placeholder="식권구매자 이름" value={purchaseName} />
-          <MealMultiSelect onChange={setPurchaseMeals} selection={purchaseMeals} />
-          <input min={1} onChange={(event) => setQuantity(Number(event.target.value))} type="number" value={quantity} />
-          <button className="primary-button" type="submit">
-            구매 등록
-          </button>
-        </form>
-      </section>
-
-      <section className="panel">
-        <div className="panel-title-row">
           <h2>식권 취소 내역</h2>
           <small>최근 12건</small>
         </div>
@@ -421,6 +356,18 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           </motion.div>
         )}
       </AnimatePresence>
+      {confirmDeleteBuyer && (
+        <ConfirmDialog
+          body="오늘 배치와 구매/취소 내역도 함께 삭제됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteBuyer(undefined)}
+          onConfirm={() => {
+            void app.deleteOfficerBuyer(confirmDeleteBuyer.id)
+            setConfirmDeleteBuyer(undefined)
+          }}
+          title={`${confirmDeleteBuyer.name} 식권구매자를 삭제할까요?`}
+        />
+      )}
     </div>
   )
 }

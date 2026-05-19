@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Minus, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
+import { ConfirmDialog } from './ConfirmDialog'
 import {
   isLowStock,
   isMilitaryRice,
@@ -35,9 +36,6 @@ interface InventoryManagerProps {
   onUpdate: (id: string, patch: Partial<InventoryItem>) => void
 }
 
-type AddStep = 0 | 1 | 2 | 3 | 4 | 5
-
-const addStepLabels = ['품명', '업체이름', '수량', '개별기준량', '유통기한', '용도']
 const unitAmountUnits = ['g', 'kg', 'L', 'mL', 'ea', '박스']
 
 function formatAmount(value: number) {
@@ -80,9 +78,9 @@ function formatExpirationLabel(expirationDate?: string) {
 export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }: InventoryManagerProps) {
   const [query, setQuery] = useState('')
   const [editingItem, setEditingItem] = useState<InventoryItem>()
+  const [confirmDeleteItem, setConfirmDeleteItem] = useState<InventoryItem>()
   const [draft, setDraft] = useState<InventoryItem>()
   const [addOpen, setAddOpen] = useState(false)
-  const [addStep, setAddStep] = useState<AddStep>(0)
   const [name, setName] = useState('')
   const [manufacturer, setManufacturer] = useState('')
   const [unit] = useState('개')
@@ -106,7 +104,6 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
   function resetAddForm() {
     setAddOpen(false)
-    setAddStep(0)
     setName('')
     setManufacturer('')
     setQuantity(0)
@@ -137,19 +134,15 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     if (ok) resetAddForm()
   }
 
-  function canSubmitAddStep() {
-    if (addStep === 0) return Boolean(name.trim())
-    if (addStep === 5 && addDailyEnabled) return addDailyAmount > 0
+  function canSubmitAdd() {
+    if (!name.trim()) return false
+    if (addDailyEnabled) return addDailyAmount > 0
     return true
   }
 
-  function handleAddStepSubmit(event: FormEvent) {
+  function handleAddSubmit(event: FormEvent) {
     event.preventDefault()
-    if (!canSubmitAddStep()) return
-    if (addStep < 5) {
-      setAddStep((step) => Math.min(5, step + 1) as AddStep)
-      return
-    }
+    if (!canSubmitAdd()) return
     void submitAdd()
   }
 
@@ -243,9 +236,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                   </button>
                   <button
                     aria-label="삭제"
-                    onClick={() => {
-                      if (window.confirm(`${item.name} 품목을 삭제할까요?`)) onDelete(item.id)
-                    }}
+                    onClick={() => setConfirmDeleteItem(item)}
                     type="button"
                   >
                     <Trash2 size={16} />
@@ -284,36 +275,22 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
       {addOpen && (
         <div className="modal-backdrop" onClick={resetAddForm}>
-          <form className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()} onSubmit={handleAddStepSubmit}>
+          <form className="modal inventory-edit-modal" onClick={(event) => event.stopPropagation()} onSubmit={handleAddSubmit}>
             <header className="modal-header">
               <div>
                 <span>부식재고 입력</span>
-                <h2>{addStepLabels[addStep]}</h2>
+                <h2>빠른 등록</h2>
               </div>
               <button aria-label="닫기" className="icon-button" onClick={resetAddForm} type="button">
                 <X size={20} />
               </button>
             </header>
-            <div className="wizard-progress">
-              {[0, 1, 2, 3, 4, 5].map((step) => (
-                <span className={step <= addStep ? 'active' : ''} key={step} />
-              ))}
-            </div>
-            {addStep === 0 && (
-              <input autoFocus onChange={(event) => setName(event.target.value)} placeholder="품명을 입력하세요" value={name} />
-            )}
-            {addStep === 1 && (
-              <input
-                autoFocus
-                onChange={(event) => setManufacturer(event.target.value)}
-                placeholder="업체이름을 입력하세요"
-                value={manufacturer}
-              />
-            )}
-            {addStep === 2 && (
-              <div className="inventory-quantity-step">
+            <input autoFocus onChange={(event) => setName(event.target.value)} placeholder="품명을 입력하세요" value={name} />
+            <input onChange={(event) => setManufacturer(event.target.value)} placeholder="업체이름" value={manufacturer} />
+            <div className="field-line compact-fields">
+              <label className="input-guide">
+                <span>현재고</span>
                 <input
-                  autoFocus
                   min={0}
                   onChange={(event) => setQuantity(Number(event.target.value))}
                   placeholder="현재 수량"
@@ -321,6 +298,9 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                   type="number"
                   value={quantity}
                 />
+              </label>
+              <label className="input-guide">
+                <span>안전재고</span>
                 <input
                   min={0}
                   onChange={(event) => setMinimumQuantity(Number(event.target.value))}
@@ -329,85 +309,68 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                   type="number"
                   value={minimumQuantity}
                 />
-                <small>수량은 기본적으로 개수 기준으로 등록됩니다. 군량곡은 가마 단위로 고정됩니다.</small>
-              </div>
-            )}
-            {addStep === 3 && (
-              <div className="unit-amount-row">
+              </label>
+            </div>
+            <div className="unit-amount-row">
+              <input
+                min={0}
+                onChange={(event) => setUnitAmountValue(event.target.value)}
+                placeholder="개별기준량"
+                step="0.1"
+                type="number"
+                value={unitAmountValue}
+              />
+              <select onChange={(event) => setUnitAmountUnit(event.target.value)} value={unitAmountUnit}>
+                {unitAmountUnits.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {candidate}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <input onChange={(event) => setExpirationDate(event.target.value)} type="date" value={expirationDate} />
+            <textarea
+              onChange={(event) => setPurpose(event.target.value)}
+              placeholder="용도 예: 조식 김치, 취사용, 예비 보관"
+              value={purpose}
+            />
+            <input onChange={(event) => setNote(event.target.value)} placeholder="메모가 필요하면 입력하세요" value={note} />
+            <section className="daily-consumption-control">
+              <label className="daily-consumption-toggle">
                 <input
-                  autoFocus
-                  min={0}
-                  onChange={(event) => setUnitAmountValue(event.target.value)}
-                  placeholder="기준량"
-                  step="0.1"
-                  type="number"
-                  value={unitAmountValue}
+                  checked={addDailyEnabled}
+                  disabled={addIsRice}
+                  onChange={(event) => setDailyConsumptionEnabled(event.target.checked)}
+                  type="checkbox"
                 />
-                <select onChange={(event) => setUnitAmountUnit(event.target.value)} value={unitAmountUnit}>
-                  {unitAmountUnits.map((candidate) => (
-                    <option key={candidate} value={candidate}>
-                      {candidate}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {addStep === 4 && (
-              <input autoFocus onChange={(event) => setExpirationDate(event.target.value)} type="date" value={expirationDate} />
-            )}
-            {addStep === 5 && (
-              <>
-                <textarea
-                  autoFocus
-                  onChange={(event) => setPurpose(event.target.value)}
-                  placeholder="예: 조식 김치, 취사용, 예비 보관, 배식용"
-                  value={purpose}
-                />
-                <input onChange={(event) => setNote(event.target.value)} placeholder="메모가 필요하면 입력하세요" value={note} />
-                <section className="daily-consumption-control">
-                  <label className="daily-consumption-toggle">
-                    <input
-                      checked={addDailyEnabled}
-                      disabled={addIsRice}
-                      onChange={(event) => setDailyConsumptionEnabled(event.target.checked)}
-                      type="checkbox"
-                    />
-                    <span>일자별 자동 소진</span>
-                  </label>
-                  {addDailyEnabled && (
-                    <label className="daily-consumption-amount">
-                      <span>하루 소진량</span>
-                      <input
-                        disabled={addIsRice}
-                        min={0}
-                        onChange={(event) => setDailyConsumptionAmount(Number(event.target.value))}
-                        step="0.1"
-                        type="number"
-                        value={addDailyAmount}
-                      />
-                    </label>
-                  )}
-                  <small>
-                    {addIsRice
-                      ? '군량곡은 하루 1.5가마가 자동 소진됩니다.'
-                      : '체크하지 않은 품목은 날짜가 지나도 수량을 자동으로 차감하지 않습니다.'}
-                  </small>
-                </section>
-              </>
-            )}
-            <div className="modal-actions">
-              <button className="ghost-button" disabled={addStep === 0} onClick={() => setAddStep((step) => Math.max(0, step - 1) as AddStep)} type="button">
-                이전
-              </button>
-              {addStep < 5 ? (
-                <button className="primary-button" disabled={!canSubmitAddStep()} type="submit">
-                  다음
-                </button>
-              ) : (
-                <button className="primary-button" disabled={!canSubmitAddStep()} type="submit">
-                  <Save size={17} /> 저장
-                </button>
+                <span>일자별 자동 소진</span>
+              </label>
+              {addDailyEnabled && (
+                <label className="daily-consumption-amount">
+                  <span>하루 소진량</span>
+                  <input
+                    disabled={addIsRice}
+                    min={0}
+                    onChange={(event) => setDailyConsumptionAmount(Number(event.target.value))}
+                    step="0.1"
+                    type="number"
+                    value={addDailyAmount}
+                  />
+                </label>
               )}
+              <small>
+                {addIsRice
+                  ? '군량곡은 하루 1.5가마가 자동 소진됩니다.'
+                  : '체크하지 않은 품목은 날짜가 지나도 수량을 자동으로 차감하지 않습니다.'}
+              </small>
+            </section>
+            <div className="modal-actions">
+              <button className="ghost-button" onClick={resetAddForm} type="button">
+                취소
+              </button>
+              <button className="primary-button" disabled={!canSubmitAdd()} type="submit">
+                <Save size={17} /> 저장
+              </button>
             </div>
           </form>
         </div>
@@ -518,6 +481,18 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
             </div>
           </form>
         </div>
+      )}
+      {confirmDeleteItem && (
+        <ConfirmDialog
+          body="해당 부식 품목이 영구 삭제됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteItem(undefined)}
+          onConfirm={() => {
+            onDelete(confirmDeleteItem.id)
+            setConfirmDeleteItem(undefined)
+          }}
+          title={`${confirmDeleteItem.name} 품목을 삭제할까요?`}
+        />
       )}
     </div>
   )

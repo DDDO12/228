@@ -16,7 +16,7 @@ import {
   militaryRiceUnit,
   type InventoryItem,
 } from '../domain/inventory'
-import type { DayMemo } from '../domain/memo'
+import type { DayMemo, ShoppingMemoItem } from '../domain/memo'
 import {
   createOfficerBalanceMap,
   type Officer,
@@ -897,15 +897,94 @@ export function useAppState() {
   const saveMemo = useCallback(
     async (memoDate: string, content: string) => {
       const trimmed = content.trim()
+      const current = memos.find((memo) => memo.date === memoDate)
+      const shoppingItems = current?.shoppingItems ?? []
       const next = trimmed
         ? [
             ...memos.filter((memo) => memo.date !== memoDate),
-            { date: memoDate, content, updatedAt: nowIso() },
+            { date: memoDate, content, shoppingItems, updatedAt: nowIso() },
           ].sort((a, b) => a.date.localeCompare(b.date))
-        : memos.filter((memo) => memo.date !== memoDate)
+        : shoppingItems.length > 0
+          ? [
+              ...memos.filter((memo) => memo.date !== memoDate),
+              { date: memoDate, content: '', shoppingItems, updatedAt: nowIso() },
+            ].sort((a, b) => a.date.localeCompare(b.date))
+          : memos.filter((memo) => memo.date !== memoDate)
       await persistMemos(next)
     },
     [memos, persistMemos],
+  )
+
+  const saveMemoShoppingItems = useCallback(
+    async (memoDate: string, shoppingItems: ShoppingMemoItem[]) => {
+      const current = memos.find((memo) => memo.date === memoDate)
+      const content = current?.content ?? ''
+      const next =
+        content.trim() || shoppingItems.length > 0
+          ? [
+              ...memos.filter((memo) => memo.date !== memoDate),
+              { date: memoDate, content, shoppingItems, updatedAt: nowIso() },
+            ].sort((a, b) => a.date.localeCompare(b.date))
+          : memos.filter((memo) => memo.date !== memoDate)
+      await persistMemos(next)
+    },
+    [memos, persistMemos],
+  )
+
+  const addMemoShoppingItem = useCallback(
+    async (memoDate: string, input: Pick<ShoppingMemoItem, 'name' | 'quantity' | 'purpose'>) => {
+      const name = input.name.trim()
+      if (!name) return false
+      const currentItems = memos.find((memo) => memo.date === memoDate)?.shoppingItems ?? []
+      const now = nowIso()
+      await saveMemoShoppingItems(memoDate, [
+        ...currentItems,
+        {
+          id: createId('shopping'),
+          name,
+          quantity: input.quantity?.trim(),
+          purpose: input.purpose?.trim(),
+          completed: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+      ])
+      return true
+    },
+    [memos, saveMemoShoppingItems],
+  )
+
+  const updateMemoShoppingItem = useCallback(
+    async (memoDate: string, id: string, patch: Partial<ShoppingMemoItem>) => {
+      const currentItems = memos.find((memo) => memo.date === memoDate)?.shoppingItems ?? []
+      await saveMemoShoppingItems(
+        memoDate,
+        currentItems.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                ...patch,
+                name: patch.name === undefined ? item.name : patch.name.trim(),
+                quantity: patch.quantity === undefined ? item.quantity : patch.quantity.trim(),
+                purpose: patch.purpose === undefined ? item.purpose : patch.purpose.trim(),
+                updatedAt: nowIso(),
+              }
+            : item,
+        ),
+      )
+    },
+    [memos, saveMemoShoppingItems],
+  )
+
+  const deleteMemoShoppingItem = useCallback(
+    async (memoDate: string, id: string) => {
+      const currentItems = memos.find((memo) => memo.date === memoDate)?.shoppingItems ?? []
+      await saveMemoShoppingItems(
+        memoDate,
+        currentItems.filter((item) => item.id !== id),
+      )
+    },
+    [memos, saveMemoShoppingItems],
   )
 
   const addOfficerMealUse = useCallback(
@@ -1173,6 +1252,7 @@ export function useAppState() {
   return {
     addDivision,
     addInventoryItem,
+    addMemoShoppingItem,
     addOfficerMealUse,
     addOfficerBuyer,
     addOfficerTicketPurchase,
@@ -1187,6 +1267,7 @@ export function useAppState() {
     date,
     deleteDivision,
     deleteInventoryItem,
+    deleteMemoShoppingItem,
     deleteOfficerBuyer,
     deleteOfficerMealUse,
     deleteSection,
@@ -1218,6 +1299,7 @@ export function useAppState() {
     undoRecord,
     updateDivision,
     updateInventoryItem,
+    updateMemoShoppingItem,
     updateOfficerBuyer,
     updateSection,
     updateSoldier,
