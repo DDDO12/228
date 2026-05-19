@@ -1,11 +1,11 @@
 :root {
   --color-text: #1f2933;
   --color-muted: #697386;
-  --color-border: rgba(31, 41, 51, 0.1);
+  --color-border: rgba(31, 41, 51, 0.12);
   --color-surface: #ffffff;
-  --color-canvas: #f6f7f8;
-  --color-control: #eef0f2;
-  --color-control-strong: #e4e7ea;
+  --color-canvas: #f3f5f6;
+  --color-control: #eff2f4;
+  --color-control-strong: #e6eaee;
   --color-primary: #0f766e;
   --color-primary-strong: #115e59;
   --color-primary-soft: #e8f7f4;
@@ -22,7 +22,7 @@
   --color-white: #ffffff;
   --font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: "Segoe UI Variable Display", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --shadow-panel: 0 8px 24px rgba(31, 41, 51, 0.05);
+  --shadow-panel: 0 1px 2px rgba(31, 41, 51, 0.06);
   --shadow-modal: 0 24px 70px rgba(31, 41, 51, 0.22);
   color: var(--color-text);
   background: var(--color-canvas);
@@ -84,10 +84,10 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 18px 12px;
-  background: rgba(246, 247, 248, 0.9);
+  padding: 16px 18px 12px;
+  background: rgba(243, 245, 246, 0.94);
   border-bottom: 1px solid var(--color-border);
-  backdrop-filter: blur(18px);
+  backdrop-filter: blur(14px);
 }
 
 .app-header span,
@@ -117,7 +117,7 @@ h3,
 }
 
 .app-header h1 {
-  font-size: 28px;
+  font-size: 26px;
   line-height: 1.1;
   font-weight: 820;
 }
@@ -136,7 +136,7 @@ h3,
   min-width: 106px;
   height: 42px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 10px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -181,7 +181,7 @@ main {
 .attendance-tile,
 .metric-grid article {
   border: 1px solid rgba(60, 60, 67, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
 }
@@ -219,7 +219,7 @@ main {
   justify-content: space-between;
   gap: 18px;
   min-height: 172px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 22px;
   color: #ffffff;
   background:
@@ -228,7 +228,7 @@ main {
     linear-gradient(135deg, var(--color-primary-strong), var(--color-primary));
   background-position: center;
   background-size: cover;
-  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.07);
 }
 
 .home-hero > * {
@@ -286,7 +286,7 @@ main {
   display: grid;
   gap: 4px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px 10px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
@@ -333,7 +333,7 @@ main {
 .status-overview div {
   display: grid;
   gap: 4px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px 6px;
   background: var(--color-control);
   text-align: center;
@@ -373,7 +373,7 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: var(--color-control);
 }
@@ -410,7 +410,7 @@ main {
 .work-summary-cards article {
   display: grid;
   gap: 2px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 11px 10px;
   background: var(--color-control);
   text-align: center;
@@ -473,9 +473,9 @@ main {
   gap: 9px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .work-status-card header {
@@ -509,7 +509,7 @@ main {
   justify-content: space-between;
   gap: 10px;
   min-width: 0;
-  border-radius: 7px;
+  border-radius: 5px;
   padding: 9px 10px;
   background: var(--color-control);
 }
@@ -575,7 +575,7 @@ main {
 }
 
 .empty-inline {
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 14px;
   background: var(--color-control);
   color: var(--color-muted);
@@ -603,8 +603,8 @@ main {
 }
 
 .panel h2 {
-  margin-bottom: 12px;
-  font-size: 18px;
+  margin-bottom: 10px;
+  font-size: 17px;
 }
 
 .category-summary {
@@ -617,7 +617,7 @@ main {
   display: grid;
   gap: 4px;
   padding: 12px 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   text-align: center;
 }
@@ -629,10 +629,10 @@ main {
   left: 0;
   z-index: 30;
   display: flex;
-  gap: 4px;
+  gap: 6px;
   max-width: 780px;
   margin: 0 auto;
-  padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+  padding: 8px 10px max(8px, env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, 0.94);
   border-top: 1px solid var(--color-border);
   backdrop-filter: blur(18px);
@@ -651,8 +651,8 @@ main {
   flex: 1;
   gap: 3px;
   min-width: 0;
-  min-height: 54px;
-  border-radius: 8px;
+  min-height: 52px;
+  border-radius: 6px;
   font-size: 11px;
 }
 
@@ -673,14 +673,14 @@ main {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 999px;
-  background: var(--color-surface);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .control-panel,
 .manager-form {
   display: grid;
-  gap: 12px;
+  gap: 10px;
 }
 
 .field-line {
@@ -695,7 +695,7 @@ textarea {
   width: 100%;
   min-height: 44px;
   border: 1px solid rgba(31, 41, 51, 0.14);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 12px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -713,14 +713,14 @@ textarea {
   grid-template-columns: repeat(3, 1fr);
   min-height: 44px;
   padding: 3px;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
 }
 
 .segmented button,
 .chip-row button {
   border: 0;
-  border-radius: 7px;
+  border-radius: 5px;
   background: transparent;
   color: var(--color-muted);
 }
@@ -738,7 +738,7 @@ textarea {
   gap: 8px;
   min-height: 44px;
   border: 1px solid rgba(31, 41, 51, 0.14);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 12px;
   background: var(--color-surface);
   color: var(--color-muted);
@@ -783,6 +783,7 @@ textarea {
   min-height: 38px;
   background: var(--color-control);
   padding: 0 12px;
+  font-weight: 700;
 }
 
 .secondary-button,
@@ -795,9 +796,9 @@ textarea {
   gap: 8px;
   min-height: 44px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 14px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .primary-button {
@@ -839,8 +840,10 @@ textarea {
 
 .attendance-sticky-controls {
   position: sticky;
-  top: 0;
+  top: 70px;
   z-index: 25;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 8px 20px rgba(31, 41, 51, 0.06);
 }
 
 .filter-dialog-button {
@@ -850,8 +853,8 @@ textarea {
   gap: 8px;
   min-height: 42px;
   border: 1px solid var(--color-primary-border);
-  border-radius: 8px;
-  background: var(--color-primary-soft);
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f5fbfa 0%, var(--color-primary-soft) 100%);
   color: var(--color-primary);
   font-weight: 800;
 }
@@ -874,7 +877,7 @@ textarea {
 .status-filter-row button {
   min-height: 38px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 8px;
   background: var(--color-control);
   color: var(--color-muted);
@@ -1033,7 +1036,7 @@ textarea {
   gap: 6px;
   min-height: 58px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px 4px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -1056,9 +1059,9 @@ textarea {
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .attendance-summary-strip div {
@@ -1093,7 +1096,11 @@ textarea {
 
 .attendance-section-group {
   display: grid;
-  gap: 8px;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .attendance-section-group header {
@@ -1101,7 +1108,8 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding: 0 2px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid rgba(31, 41, 51, 0.08);
 }
 
 .attendance-section-header > div {
@@ -1138,6 +1146,7 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  padding: 10px;
 }
 
 .attendance-tile {
@@ -1148,6 +1157,7 @@ textarea {
   width: 100%;
   min-height: 62px;
   padding: 8px 10px;
+  border-left: 4px solid transparent;
   text-align: left;
 }
 
@@ -1164,13 +1174,15 @@ textarea {
 }
 
 .attendance-tile.status-ate {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
+  border-color: rgba(15, 118, 110, 0.18);
+  border-left-color: var(--color-primary);
+  background: rgba(232, 247, 244, 0.46);
 }
 
 .attendance-tile.status-missing {
   border-color: var(--color-danger-border);
-  background: var(--color-danger-soft);
+  border-left-color: var(--color-danger-strong);
+  background: rgba(255, 243, 243, 0.72);
 }
 
 .attendance-tile.bulk-selected {
@@ -1184,44 +1196,52 @@ textarea {
 
 .attendance-tile.status-leave {
   border-color: #bfdbfe;
-  background: #eff6ff;
+  border-left-color: #2563eb;
+  background: rgba(239, 246, 255, 0.74);
 }
 
 .attendance-tile.status-cooking {
   border-color: #fed7aa;
-  background: #fff7ed;
+  border-left-color: #ea580c;
+  background: rgba(255, 247, 237, 0.8);
 }
 
 .attendance-tile.status-room {
   border-color: #c4b5fd;
-  background: #f5f3ff;
+  border-left-color: #6d28d9;
+  background: rgba(245, 243, 255, 0.78);
 }
 
 .attendance-tile.status-serving {
   border-color: #a7f3d0;
-  background: #ecfdf5;
+  border-left-color: #059669;
+  background: rgba(236, 253, 245, 0.8);
 }
 
 .attendance-tile.status-duty,
 .attendance-tile.status-dutySleep {
   border-color: #ddd6fe;
-  background: #f5f3ff;
+  border-left-color: #7c3aed;
+  background: rgba(245, 243, 255, 0.78);
 }
 
 .attendance-tile.status-medical {
   border-color: #fecdd3;
-  background: #fff1f2;
+  border-left-color: #e11d48;
+  background: rgba(255, 241, 242, 0.8);
 }
 
 .attendance-tile.status-corporalCheckup {
   border-color: #bae6fd;
-  background: #f0f9ff;
+  border-left-color: #0284c7;
+  background: rgba(240, 249, 255, 0.82);
 }
 
 .attendance-tile.status-dispatch,
 .attendance-tile.status-mowing,
 .attendance-tile.status-etc {
-  border-color: #e5e7eb;
+  border-color: #d7dde4;
+  border-left-color: #64748b;
   background: #f8fafc;
 }
 
@@ -1299,9 +1319,9 @@ textarea {
   min-height: 38px;
   overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 3px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .status-action,
@@ -1315,14 +1335,14 @@ textarea {
   border-radius: 6px;
   padding: 0 10px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
 }
 
 .status-action-ate {
   color: var(--color-white);
   background: var(--color-primary);
-  box-shadow: 0 3px 10px rgba(15, 118, 110, 0.18);
+  box-shadow: none;
 }
 
 .status-action-missing {
@@ -1375,7 +1395,7 @@ textarea {
   color: var(--color-white);
   background: var(--color-info);
   border-color: var(--color-info);
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.18);
+  box-shadow: none;
 }
 
 .status-leave .exception-open-button {
@@ -1469,7 +1489,7 @@ textarea {
   gap: 4px;
   min-height: 86px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: var(--color-control);
   color: var(--color-text);
@@ -1503,7 +1523,7 @@ textarea {
 .leave-date-control {
   display: grid;
   gap: 7px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: var(--color-control);
 }
@@ -1522,7 +1542,7 @@ textarea {
 .leave-summary {
   display: grid;
   gap: 6px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 14px;
   background: var(--color-info-soft);
   color: var(--color-info);
@@ -1542,7 +1562,7 @@ textarea {
 .missing-reason-grid button {
   min-height: 48px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
   font-weight: 800;
@@ -1561,7 +1581,7 @@ textarea {
   align-items: center;
   min-height: 48px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0;
   background: var(--color-primary-soft);
   color: var(--color-primary);
@@ -1595,7 +1615,7 @@ textarea {
   place-items: center;
   width: 38px;
   height: 38px;
-  border-radius: 7px;
+  border-radius: 5px;
   background: var(--color-primary);
   color: var(--color-white);
   font-size: 24px;
@@ -1698,7 +1718,7 @@ textarea {
 .empty-state-detailed button {
   justify-self: center;
   padding: 6px 16px;
-  border-radius: 8px;
+  border-radius: 6px;
   border: 1px solid var(--color-border);
   background: var(--color-control);
   font-size: 13px;
@@ -1768,7 +1788,7 @@ textarea {
 .meal-multi-row button {
   min-height: 40px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-muted);
   font-weight: 800;
@@ -1790,7 +1810,7 @@ textarea {
 .officer-meal-groups > article {
   display: grid;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px;
   background: var(--color-control);
 }
@@ -1814,9 +1834,9 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .officer-use-list div.unpaid {
@@ -1846,7 +1866,7 @@ textarea {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control-strong);
   color: var(--color-danger-strong);
 }
@@ -1869,7 +1889,7 @@ textarea {
   gap: 5px;
   min-height: 38px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
   font-weight: 800;
@@ -1901,7 +1921,7 @@ textarea {
 .ticket-buyer-list-tools button {
   min-height: 34px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 10px;
   background: var(--color-control);
   color: var(--color-text);
@@ -1918,7 +1938,7 @@ textarea {
   display: grid;
   gap: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
@@ -1948,7 +1968,7 @@ textarea {
   gap: 8px;
   min-width: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 2px 4px;
   background: transparent;
   color: var(--color-text);
@@ -1983,7 +2003,7 @@ textarea {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -1995,6 +2015,8 @@ textarea {
 .ticket-buyer-detail {
   display: grid;
   gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(31, 41, 51, 0.08);
 }
 
 .ticket-buyer-history-strip {
@@ -2006,7 +2028,7 @@ textarea {
 .ticket-buyer-history-strip div {
   display: grid;
   gap: 2px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 9px 8px;
   background: var(--color-control);
   text-align: center;
@@ -2037,7 +2059,7 @@ textarea {
   min-width: 0;
   min-height: 48px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 6px 4px;
   background: var(--color-control);
   color: var(--color-muted);
@@ -2248,7 +2270,7 @@ textarea {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -2291,7 +2313,7 @@ textarea {
 
 .manager-section-title strong {
   flex: 0 0 auto;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 5px 8px;
   background: var(--color-control);
   color: var(--color-muted);
@@ -2319,7 +2341,7 @@ textarea {
   display: grid;
   gap: 10px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
@@ -2334,7 +2356,7 @@ textarea {
 .division-section-manager {
   display: grid;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 10px;
   background: var(--color-control);
 }
@@ -2383,9 +2405,9 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .section-chip-card > div:first-child {
@@ -2424,7 +2446,7 @@ textarea {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -2448,7 +2470,7 @@ textarea {
 .inventory-summary article {
   display: grid;
   gap: 4px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 14px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
@@ -2465,7 +2487,8 @@ textarea {
 
 .inventory-card.low-stock {
   border-color: var(--color-danger-border);
-  background: var(--color-danger-soft);
+  background: var(--color-surface);
+  box-shadow: inset 4px 0 0 var(--color-danger-strong), var(--shadow-panel);
 }
 
 .inventory-card-header,
@@ -2488,7 +2511,7 @@ textarea {
   width: 34px;
   height: 34px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -2525,7 +2548,7 @@ textarea {
 
 .inventory-meta-grid span {
   min-width: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px 10px;
   background: var(--color-control);
   color: var(--color-muted);
@@ -2558,7 +2581,7 @@ textarea {
   place-items: center;
   min-height: 36px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 8px;
   background: var(--color-control);
   color: var(--color-text);
@@ -2610,7 +2633,7 @@ textarea {
 .unit-choice-grid button {
   min-height: 48px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
   font-weight: 700;
@@ -2651,7 +2674,7 @@ textarea {
 .unit-amount-row select {
   min-height: 48px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 12px;
   background: var(--color-surface);
   color: var(--color-text);
@@ -2680,7 +2703,7 @@ textarea {
 .daily-consumption-control {
   display: grid;
   gap: 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 12px;
   background: var(--color-control);
 }
@@ -2756,7 +2779,7 @@ textarea {
 .memo-calendar-panel .calendar-header button {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .memo-calendar-panel .calendar-weekdays,
@@ -2788,7 +2811,7 @@ textarea {
   aspect-ratio: 1;
   min-width: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -2881,7 +2904,7 @@ textarea {
   grid-template-columns: minmax(0, 1fr) 38px;
   gap: 10px;
   align-items: center;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 11px;
   background: var(--color-primary-soft);
   border: 1px solid var(--color-primary-border);
@@ -2907,7 +2930,7 @@ textarea {
   width: 38px;
   height: 38px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-danger-soft);
   color: var(--color-danger);
 }
@@ -2939,9 +2962,9 @@ textarea {
   align-items: center;
   gap: 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 8px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .memo-shopping-list article.completed {
@@ -2957,7 +2980,7 @@ textarea {
   place-items: center;
   min-height: 36px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--color-control);
   color: var(--color-text);
 }
@@ -3017,7 +3040,7 @@ textarea {
   min-width: 0;
   min-height: 58px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 9px 10px;
   background: var(--color-control);
   color: var(--color-text);
@@ -3073,7 +3096,7 @@ textarea {
   min-height: 280px;
   overflow: auto;
   margin: 0 0 14px;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 14px;
   background: #1d1d1f;
   color: #f5f5f7;
@@ -3100,7 +3123,7 @@ textarea {
   overflow: auto;
   border-radius: 18px 18px 0 0;
   padding: 18px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .sheet-back-button {
@@ -3124,7 +3147,7 @@ textarea {
   gap: 10px;
   min-height: 48px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 0 12px;
   background: var(--color-control);
   color: var(--color-text);
@@ -3154,7 +3177,7 @@ textarea {
   width: min(100%, 380px);
   border-radius: 12px;
   padding: 18px;
-  background: var(--color-surface);
+  background: rgba(255, 255, 255, 0.82);
 }
 
 .modal-actions {
@@ -3341,3 +3364,5 @@ textarea {
     min-height: 78px;
   }
 }
+
+
