@@ -432,22 +432,28 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               value={draft.manufacturer ?? ''}
             />
             <div className="field-line compact-fields">
-              <input
-                min={0}
-                onChange={(event) => updateDraft({ quantity: Number(event.target.value) })}
-                placeholder="현재고"
-                step="0.1"
-                type="number"
-                value={draft.quantity}
-              />
-              <input
-                min={0}
-                onChange={(event) => updateDraft({ minimumQuantity: Number(event.target.value) })}
-                placeholder="안전재고"
-                step="0.1"
-                type="number"
-                value={draft.minimumQuantity}
-              />
+              <label className="input-guide">
+                <span>현재고</span>
+                <input
+                  min={0}
+                  onChange={(event) => updateDraft({ quantity: Number(event.target.value) })}
+                  placeholder="현재 남은 수량"
+                  step="0.1"
+                  type="number"
+                  value={draft.quantity}
+                />
+              </label>
+              <label className="input-guide">
+                <span>안전재고</span>
+                <input
+                  min={0}
+                  onChange={(event) => updateDraft({ minimumQuantity: Number(event.target.value) })}
+                  placeholder="주의 알림 기준"
+                  step="0.1"
+                  type="number"
+                  value={draft.minimumQuantity}
+                />
+              </label>
             </div>
             <div className="unit-amount-row">
               <input

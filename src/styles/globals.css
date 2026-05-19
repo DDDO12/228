@@ -2444,6 +2444,17 @@ textarea {
   font-weight: 800;
 }
 
+.input-guide {
+  display: grid;
+  gap: 6px;
+}
+
+.input-guide span {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .daily-consumption-note {
   border-radius: 6px;
   padding: 8px 10px;
