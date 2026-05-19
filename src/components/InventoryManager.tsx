@@ -38,9 +38,26 @@ interface InventoryManagerProps {
 type AddStep = 0 | 1 | 2 | 3 | 4 | 5
 
 const addStepLabels = ['품명', '업체이름', '수량', '개별기준량', '유통기한', '용도']
+const unitAmountUnits = ['g', 'kg', 'L', 'mL', 'ea', '박스']
 
 function formatAmount(value: number) {
   return Number(value.toFixed(2)).toString()
+}
+
+function splitUnitAmount(value?: string) {
+  const trimmed = value?.trim() ?? ''
+  const match = trimmed.match(/^([\d,.]+)\s*(.*)$/u)
+  if (!match) return { amount: trimmed, unit: 'g' }
+  const unit = match[2]?.trim()
+  return {
+    amount: match[1].replace(',', '.'),
+    unit: unit && unitAmountUnits.includes(unit) ? unit : 'g',
+  }
+}
+
+function composeUnitAmount(amount: string, unit: string) {
+  const trimmed = amount.trim()
+  return trimmed ? `${trimmed}${unit}` : ''
 }
 
 function getExpirationStatus(expirationDate?: string) {
@@ -71,7 +88,8 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const [unit] = useState('개')
   const [quantity, setQuantity] = useState(0)
   const [minimumQuantity, setMinimumQuantity] = useState(0)
-  const [unitAmount, setUnitAmount] = useState('')
+  const [unitAmountValue, setUnitAmountValue] = useState('')
+  const [unitAmountUnit, setUnitAmountUnit] = useState('g')
   const [expirationDate, setExpirationDate] = useState('')
   const [purpose, setPurpose] = useState('')
   const [note, setNote] = useState('')
@@ -84,6 +102,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const addIsRice = name.trim() === militaryRiceName
   const addDailyEnabled = addIsRice || dailyConsumptionEnabled
   const addDailyAmount = addIsRice ? militaryRiceDailyConsumption : dailyConsumptionAmount
+  const draftUnitAmount = splitUnitAmount(draft?.unitAmount)
 
   function resetAddForm() {
     setAddOpen(false)
@@ -92,7 +111,8 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     setManufacturer('')
     setQuantity(0)
     setMinimumQuantity(0)
-    setUnitAmount('')
+    setUnitAmountValue('')
+    setUnitAmountUnit('g')
     setExpirationDate('')
     setPurpose('')
     setNote('')
@@ -107,7 +127,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
       unit: addIsRice ? militaryRiceUnit : unit,
       quantity,
       minimumQuantity,
-      unitAmount,
+      unitAmount: composeUnitAmount(unitAmountValue, unitAmountUnit),
       expirationDate,
       purpose,
       note,
@@ -313,12 +333,24 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               </div>
             )}
             {addStep === 3 && (
-              <input
-                autoFocus
-                onChange={(event) => setUnitAmount(event.target.value)}
-                placeholder="예: 500g, 1L, 10kg, 1박스"
-                value={unitAmount}
-              />
+              <div className="unit-amount-row">
+                <input
+                  autoFocus
+                  min={0}
+                  onChange={(event) => setUnitAmountValue(event.target.value)}
+                  placeholder="기준량"
+                  step="0.1"
+                  type="number"
+                  value={unitAmountValue}
+                />
+                <select onChange={(event) => setUnitAmountUnit(event.target.value)} value={unitAmountUnit}>
+                  {unitAmountUnits.map((candidate) => (
+                    <option key={candidate} value={candidate}>
+                      {candidate}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
             {addStep === 4 && (
               <input autoFocus onChange={(event) => setExpirationDate(event.target.value)} type="date" value={expirationDate} />
@@ -417,11 +449,23 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 value={draft.minimumQuantity}
               />
             </div>
-            <input
-              onChange={(event) => updateDraft({ unitAmount: event.target.value })}
-              placeholder="개별기준량 예: 500g, 1L"
-              value={draft.unitAmount ?? ''}
-            />
+            <div className="unit-amount-row">
+              <input
+                min={0}
+                onChange={(event) => updateDraft({ unitAmount: composeUnitAmount(event.target.value, draftUnitAmount.unit) })}
+                placeholder="개별기준량"
+                step="0.1"
+                type="number"
+                value={draftUnitAmount.amount}
+              />
+              <select onChange={(event) => updateDraft({ unitAmount: composeUnitAmount(draftUnitAmount.amount, event.target.value) })} value={draftUnitAmount.unit}>
+                {unitAmountUnits.map((candidate) => (
+                  <option key={candidate} value={candidate}>
+                    {candidate}
+                  </option>
+                ))}
+              </select>
+            </div>
             <input
               onChange={(event) => updateDraft({ expirationDate: event.target.value })}
               type="date"

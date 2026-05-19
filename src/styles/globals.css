@@ -2428,6 +2428,22 @@ textarea {
   line-height: 1.5;
 }
 
+.unit-amount-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(96px, 0.36fr);
+  gap: 8px;
+}
+
+.unit-amount-row select {
+  min-height: 48px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 0 12px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-weight: 800;
+}
+
 .daily-consumption-note {
   border-radius: 6px;
   padding: 8px 10px;
