@@ -361,8 +361,8 @@ export function useAppState() {
           const servingCount = activeRecord.records.filter(
             (item) => item.soldierId !== soldierId && item.divisionId === targetItem?.divisionId && item.status === 'serving',
           ).length
-          if (servingCount >= 2) {
-            setToast(`${targetItem?.divisionName ?? '해당 포대'} 배식은 최대 2명까지 가능합니다.`)
+          if (servingCount >= 4) {
+            setToast(`${targetItem?.divisionName ?? '해당 포대'} 배식은 최대 4명까지 가능합니다.`)
             return
           }
         }

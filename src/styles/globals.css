@@ -1515,19 +1515,18 @@ textarea {
 
 .bulk-selection-panel {
   position: fixed;
-  right: 10px;
-  bottom: calc(78px + env(safe-area-inset-bottom));
-  left: 10px;
+  top: 50%;
+  left: 50%;
   z-index: 45;
   display: grid;
   gap: 10px;
-  max-width: 760px;
-  margin: 0 auto;
+  width: min(calc(100vw - 32px), 430px);
   border: 1px solid var(--color-border);
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: var(--shadow-modal);
+  transform: translate(-50%, -50%);
   backdrop-filter: blur(16px);
 }
 
