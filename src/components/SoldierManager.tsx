@@ -89,6 +89,22 @@ export function SoldierManager({
   const sectionNamesForDivision = (targetDivisionId?: string) =>
     targetDivisionId ? (sectionNamesByDivision.get(targetDivisionId) ?? []) : sectionNames
 
+  const sectionNamesForFilter = (targetDivisionFilterId: typeof divisionFilterId) => {
+    if (targetDivisionFilterId === 'all') return sectionNames
+    if (targetDivisionFilterId === 'unassigned') return sectionNamesByDivision.get('') ?? []
+    return sectionNamesByDivision.get(targetDivisionFilterId) ?? []
+  }
+
+  const hasUnassignedSectionsForFilter = (targetDivisionFilterId: typeof divisionFilterId) =>
+    soldiers.some((soldier) => {
+      if (soldier.section) return false
+      if (targetDivisionFilterId === 'all') return true
+      if (targetDivisionFilterId === 'unassigned') return !soldier.divisionId
+      return soldier.divisionId === targetDivisionFilterId
+    })
+
+  const visibleSectionNames = sectionNamesForFilter(divisionFilterId)
+
   const filtered = soldiers
     .filter((soldier) => {
       const division = divisionMap.get(soldier.divisionId ?? '') ?? '포대 미지정'
@@ -106,7 +122,7 @@ export function SoldierManager({
   const filteredIds = filtered.map((soldier) => soldier.id)
   const selectedFilteredCount = filteredIds.filter((id) => selectedIds.includes(id)).length
   const hasUnassignedSoldiers = soldiers.some((soldier) => !soldier.divisionId)
-  const hasUnassignedSections = soldiers.some((soldier) => !soldier.section)
+  const hasUnassignedSections = hasUnassignedSectionsForFilter(divisionFilterId)
   const duplicateNames = new Set(
     soldiers
       .filter((soldier, index) =>
@@ -149,6 +165,16 @@ export function SoldierManager({
   function setSectionDraft(targetDivisionId: string | undefined, value: string) {
     const draftKey = targetDivisionId ?? ''
     setSectionDrafts((drafts) => ({ ...drafts, [draftKey]: value }))
+  }
+
+  function changeDivisionFilter(nextDivisionFilterId: typeof divisionFilterId) {
+    setDivisionFilterId(nextDivisionFilterId)
+    const nextSectionNames = sectionNamesForFilter(nextDivisionFilterId)
+    if (sectionFilter.startsWith('section:') && !nextSectionNames.includes(sectionFilter.replace(/^section:/u, ''))) {
+      setSectionFilter('all')
+      return
+    }
+    if (sectionFilter === 'unassigned' && !hasUnassignedSectionsForFilter(nextDivisionFilterId)) setSectionFilter('all')
   }
 
   function changeAddDivision(nextDivisionId: string) {
@@ -264,14 +290,14 @@ export function SoldierManager({
         <div>
           <span className="manager-filter-label">포대</span>
           <div className="chip-row division-filter-row" aria-label="포대별 인원 필터">
-            <button className={divisionFilterId === 'all' ? 'active' : ''} onClick={() => setDivisionFilterId('all')} type="button">
+            <button className={divisionFilterId === 'all' ? 'active' : ''} onClick={() => changeDivisionFilter('all')} type="button">
               전체
             </button>
             {divisions.map((division) => (
               <button
                 className={divisionFilterId === division.id ? 'active' : ''}
                 key={division.id}
-                onClick={() => setDivisionFilterId(division.id)}
+                onClick={() => changeDivisionFilter(division.id)}
                 type="button"
               >
                 {division.name}
@@ -280,7 +306,7 @@ export function SoldierManager({
             {hasUnassignedSoldiers && (
               <button
                 className={divisionFilterId === 'unassigned' ? 'active' : ''}
-                onClick={() => setDivisionFilterId('unassigned')}
+                onClick={() => changeDivisionFilter('unassigned')}
                 type="button"
               >
                 미지정
@@ -295,7 +321,7 @@ export function SoldierManager({
             <button className={sectionFilter === 'all' ? 'active' : ''} onClick={() => setSectionFilter('all')} type="button">
               전체
             </button>
-            {sectionNames.map((item) => (
+            {visibleSectionNames.map((item) => (
               <button
                 className={sectionFilter === `section:${item}` ? 'active' : ''}
                 key={item}
