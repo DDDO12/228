@@ -21,7 +21,9 @@ export function BottomNav({ route, onChange }: BottomNavProps) {
         const Icon = icons[item]
         return (
           <button className={route === item ? 'active' : ''} key={item} onClick={() => onChange(item)} type="button">
-            <Icon size={20} />
+            <span className="bottom-nav-icon">
+              <Icon size={20} />
+            </span>
             <span>{routeLabels[item]}</span>
           </button>
         )
