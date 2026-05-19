@@ -6,6 +6,7 @@ export interface InventoryItem {
   quantity: number
   minimumQuantity: number
   unitAmount?: string
+  expirationDate?: string
   purpose?: string
   note?: string
   dailyConsumptionEnabled?: boolean

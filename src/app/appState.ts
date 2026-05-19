@@ -799,6 +799,7 @@ export function useAppState() {
         | 'quantity'
         | 'minimumQuantity'
         | 'unitAmount'
+        | 'expirationDate'
         | 'purpose'
         | 'note'
         | 'dailyConsumptionEnabled'
@@ -826,6 +827,7 @@ export function useAppState() {
           quantity: Math.max(0, input.quantity),
           minimumQuantity: Math.max(0, input.minimumQuantity),
           unitAmount: input.unitAmount?.trim(),
+          expirationDate: input.expirationDate || undefined,
           purpose: input.purpose?.trim(),
           note: input.note?.trim(),
           dailyConsumptionEnabled: dailyEnabled,
@@ -861,6 +863,7 @@ export function useAppState() {
             quantity: patch.quantity === undefined ? item.quantity : Math.max(0, patch.quantity),
             minimumQuantity: patch.minimumQuantity === undefined ? item.minimumQuantity : Math.max(0, patch.minimumQuantity),
             unitAmount: patch.unitAmount === undefined ? item.unitAmount : patch.unitAmount.trim(),
+            expirationDate: patch.expirationDate === undefined ? item.expirationDate : patch.expirationDate || undefined,
             purpose: patch.purpose === undefined ? item.purpose : patch.purpose.trim(),
             note: patch.note === undefined ? item.note : patch.note.trim(),
             dailyConsumptionEnabled: dailyEnabled,

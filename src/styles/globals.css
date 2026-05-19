@@ -13,6 +13,8 @@
   --color-info: #2563eb;
   --color-info-soft: #eff5ff;
   --color-info-border: rgba(37, 99, 235, 0.18);
+  --color-warning-strong: #b45309;
+  --color-warning-soft: #fff7ed;
   --color-danger: #b91c1c;
   --color-danger-strong: #dc2626;
   --color-danger-soft: #fff3f3;
@@ -2304,7 +2306,7 @@ textarea {
 
 .inventory-meta-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
   gap: 6px;
 }
 
@@ -2316,6 +2318,16 @@ textarea {
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 700;
+}
+
+.inventory-meta-grid span.expiration-soon {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-strong);
+}
+
+.inventory-meta-grid span.expiration-expired {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-strong);
 }
 
 .stock-actions {
@@ -2362,7 +2374,7 @@ textarea {
 
 .wizard-progress {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
 }
 

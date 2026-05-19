@@ -9,7 +9,7 @@ import {
   resolveDailyConsumption,
   type InventoryItem,
 } from '../domain/inventory'
-import { formatTime } from '../utils/date'
+import { formatCompactDate, formatTime, toDateInputValue } from '../utils/date'
 import { matchesSearch } from '../utils/search'
 
 type InventoryInput = Pick<
@@ -20,6 +20,7 @@ type InventoryInput = Pick<
   | 'quantity'
   | 'minimumQuantity'
   | 'unitAmount'
+  | 'expirationDate'
   | 'purpose'
   | 'note'
   | 'dailyConsumptionEnabled'
@@ -34,12 +35,29 @@ interface InventoryManagerProps {
   onUpdate: (id: string, patch: Partial<InventoryItem>) => void
 }
 
-type AddStep = 0 | 1 | 2 | 3 | 4
+type AddStep = 0 | 1 | 2 | 3 | 4 | 5
 
-const addStepLabels = ['품명', '업체이름', '수량', '개별기준량', '용도']
+const addStepLabels = ['품명', '업체이름', '수량', '개별기준량', '유통기한', '용도']
 
 function formatAmount(value: number) {
   return Number(value.toFixed(2)).toString()
+}
+
+function getExpirationStatus(expirationDate?: string) {
+  if (!expirationDate) return 'none'
+  const today = new Date(`${toDateInputValue()}T00:00:00`).getTime()
+  const expiry = new Date(`${expirationDate}T00:00:00`).getTime()
+  const daysLeft = Math.ceil((expiry - today) / 86_400_000)
+  if (daysLeft < 0) return 'expired'
+  if (daysLeft <= 7) return 'soon'
+  return 'normal'
+}
+
+function formatExpirationLabel(expirationDate?: string) {
+  if (!expirationDate) return '유통기한 미입력'
+  const status = getExpirationStatus(expirationDate)
+  const prefix = status === 'expired' ? '만료' : status === 'soon' ? '임박' : '유통기한'
+  return `${prefix} ${formatCompactDate(expirationDate)}`
 }
 
 export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }: InventoryManagerProps) {
@@ -54,12 +72,15 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const [quantity, setQuantity] = useState(0)
   const [minimumQuantity, setMinimumQuantity] = useState(0)
   const [unitAmount, setUnitAmount] = useState('')
+  const [expirationDate, setExpirationDate] = useState('')
   const [purpose, setPurpose] = useState('')
   const [note, setNote] = useState('')
   const [dailyConsumptionEnabled, setDailyConsumptionEnabled] = useState(false)
   const [dailyConsumptionAmount, setDailyConsumptionAmount] = useState(0)
 
-  const filtered = items.filter((item) => matchesSearch(query, [item.name, item.manufacturer, item.unitAmount, item.purpose, item.note]))
+  const filtered = items.filter((item) =>
+    matchesSearch(query, [item.name, item.manufacturer, item.unitAmount, item.expirationDate, item.purpose, item.note]),
+  )
   const addIsRice = name.trim() === militaryRiceName
   const addDailyEnabled = addIsRice || dailyConsumptionEnabled
   const addDailyAmount = addIsRice ? militaryRiceDailyConsumption : dailyConsumptionAmount
@@ -72,6 +93,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     setQuantity(0)
     setMinimumQuantity(0)
     setUnitAmount('')
+    setExpirationDate('')
     setPurpose('')
     setNote('')
     setDailyConsumptionEnabled(false)
@@ -86,6 +108,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
       quantity,
       minimumQuantity,
       unitAmount,
+      expirationDate,
       purpose,
       note,
       dailyConsumptionEnabled: addDailyEnabled,
@@ -96,15 +119,15 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
   function canSubmitAddStep() {
     if (addStep === 0) return Boolean(name.trim())
-    if (addStep === 4 && addDailyEnabled) return addDailyAmount > 0
+    if (addStep === 5 && addDailyEnabled) return addDailyAmount > 0
     return true
   }
 
   function handleAddStepSubmit(event: FormEvent) {
     event.preventDefault()
     if (!canSubmitAddStep()) return
-    if (addStep < 4) {
-      setAddStep((step) => Math.min(4, step + 1) as AddStep)
+    if (addStep < 5) {
+      setAddStep((step) => Math.min(5, step + 1) as AddStep)
       return
     }
     void submitAdd()
@@ -134,6 +157,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
       quantity: Number(draft.quantity),
       minimumQuantity: Number(draft.minimumQuantity),
       unitAmount: draft.unitAmount,
+      expirationDate: draft.expirationDate,
       purpose: draft.purpose,
       note: draft.note,
       dailyConsumptionEnabled: draftIsRice || draft.dailyConsumptionEnabled === true,
@@ -179,6 +203,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
       <div className="inventory-grid">
         {filtered.map((item) => {
           const daily = resolveDailyConsumption(item)
+          const expirationStatus = getExpirationStatus(item.expirationDate)
           return (
             <article className={`inventory-card ${isLowStock(item) ? 'low-stock' : ''}`} key={item.id}>
               <header className="inventory-card-header">
@@ -213,6 +238,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               </div>
               <div className="inventory-meta-grid">
                 <span>{item.unitAmount ? `개별 ${item.unitAmount}` : '개별기준량 미입력'}</span>
+                <span className={`expiration-${expirationStatus}`}>{formatExpirationLabel(item.expirationDate)}</span>
                 <span>{item.purpose ? `용도 ${item.purpose}` : '용도 미입력'}</span>
               </div>
               {daily.enabled && (
@@ -249,7 +275,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               </button>
             </header>
             <div className="wizard-progress">
-              {[0, 1, 2, 3, 4].map((step) => (
+              {[0, 1, 2, 3, 4, 5].map((step) => (
                 <span className={step <= addStep ? 'active' : ''} key={step} />
               ))}
             </div>
@@ -295,6 +321,9 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               />
             )}
             {addStep === 4 && (
+              <input autoFocus onChange={(event) => setExpirationDate(event.target.value)} type="date" value={expirationDate} />
+            )}
+            {addStep === 5 && (
               <>
                 <textarea
                   autoFocus
@@ -338,7 +367,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               <button className="ghost-button" disabled={addStep === 0} onClick={() => setAddStep((step) => Math.max(0, step - 1) as AddStep)} type="button">
                 이전
               </button>
-              {addStep < 4 ? (
+              {addStep < 5 ? (
                 <button className="primary-button" disabled={!canSubmitAddStep()} type="submit">
                   다음
                 </button>
@@ -392,6 +421,11 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               onChange={(event) => updateDraft({ unitAmount: event.target.value })}
               placeholder="개별기준량 예: 500g, 1L"
               value={draft.unitAmount ?? ''}
+            />
+            <input
+              onChange={(event) => updateDraft({ expirationDate: event.target.value })}
+              type="date"
+              value={draft.expirationDate ?? ''}
             />
             <textarea onChange={(event) => updateDraft({ purpose: event.target.value })} placeholder="용도" value={draft.purpose ?? ''} />
             <input onChange={(event) => updateDraft({ note: event.target.value })} placeholder="메모" value={draft.note ?? ''} />
