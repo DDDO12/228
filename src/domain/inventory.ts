@@ -1,9 +1,12 @@
 export interface InventoryItem {
   id: string
   name: string
+  manufacturer?: string
   unit: string
   quantity: number
   minimumQuantity: number
+  unitAmount?: string
+  purpose?: string
   note?: string
   dailyConsumptionEnabled?: boolean
   dailyConsumptionAmount?: number

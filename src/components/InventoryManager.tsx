@@ -14,7 +14,16 @@ import { matchesSearch } from '../utils/search'
 
 type InventoryInput = Pick<
   InventoryItem,
-  'name' | 'unit' | 'quantity' | 'minimumQuantity' | 'note' | 'dailyConsumptionEnabled' | 'dailyConsumptionAmount'
+  | 'name'
+  | 'manufacturer'
+  | 'unit'
+  | 'quantity'
+  | 'minimumQuantity'
+  | 'unitAmount'
+  | 'purpose'
+  | 'note'
+  | 'dailyConsumptionEnabled'
+  | 'dailyConsumptionAmount'
 >
 
 interface InventoryManagerProps {
@@ -25,10 +34,9 @@ interface InventoryManagerProps {
   onUpdate: (id: string, patch: Partial<InventoryItem>) => void
 }
 
-type AddStep = 0 | 1 | 2 | 3
+type AddStep = 0 | 1 | 2 | 3 | 4
 
-const customUnitLabel = '직접입력'
-const units = ['개', 'KG', 'L', '박스', militaryRiceUnit]
+const addStepLabels = ['품명', '업체이름', '수량', '개별기준량', '용도']
 
 function formatAmount(value: number) {
   return Number(value.toFixed(2)).toString()
@@ -41,15 +49,17 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const [addOpen, setAddOpen] = useState(false)
   const [addStep, setAddStep] = useState<AddStep>(0)
   const [name, setName] = useState('')
-  const [unit, setUnit] = useState('개')
-  const [customUnit, setCustomUnit] = useState('')
+  const [manufacturer, setManufacturer] = useState('')
+  const [unit] = useState('개')
   const [quantity, setQuantity] = useState(0)
   const [minimumQuantity, setMinimumQuantity] = useState(0)
+  const [unitAmount, setUnitAmount] = useState('')
+  const [purpose, setPurpose] = useState('')
   const [note, setNote] = useState('')
   const [dailyConsumptionEnabled, setDailyConsumptionEnabled] = useState(false)
   const [dailyConsumptionAmount, setDailyConsumptionAmount] = useState(0)
 
-  const filtered = items.filter((item) => matchesSearch(query, [item.name, item.note]))
+  const filtered = items.filter((item) => matchesSearch(query, [item.name, item.manufacturer, item.unitAmount, item.purpose, item.note]))
   const addIsRice = name.trim() === militaryRiceName
   const addDailyEnabled = addIsRice || dailyConsumptionEnabled
   const addDailyAmount = addIsRice ? militaryRiceDailyConsumption : dailyConsumptionAmount
@@ -58,22 +68,25 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     setAddOpen(false)
     setAddStep(0)
     setName('')
-    setUnit('개')
-    setCustomUnit('')
+    setManufacturer('')
     setQuantity(0)
     setMinimumQuantity(0)
+    setUnitAmount('')
+    setPurpose('')
     setNote('')
     setDailyConsumptionEnabled(false)
     setDailyConsumptionAmount(0)
   }
 
   async function submitAdd() {
-    const resolvedUnit = addIsRice ? militaryRiceUnit : unit === customUnitLabel ? customUnit : unit
     const ok = await onAdd({
       name,
-      unit: resolvedUnit,
+      manufacturer,
+      unit: addIsRice ? militaryRiceUnit : unit,
       quantity,
       minimumQuantity,
+      unitAmount,
+      purpose,
       note,
       dailyConsumptionEnabled: addDailyEnabled,
       dailyConsumptionAmount: addDailyAmount,
@@ -83,16 +96,15 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
   function canSubmitAddStep() {
     if (addStep === 0) return Boolean(name.trim())
-    if (addStep === 2 && unit === customUnitLabel) return Boolean(customUnit.trim())
-    if (addStep === 3 && addDailyEnabled) return addDailyAmount > 0
+    if (addStep === 4 && addDailyEnabled) return addDailyAmount > 0
     return true
   }
 
   function handleAddStepSubmit(event: FormEvent) {
     event.preventDefault()
     if (!canSubmitAddStep()) return
-    if (addStep < 3) {
-      setAddStep((step) => Math.min(3, step + 1) as AddStep)
+    if (addStep < 4) {
+      setAddStep((step) => Math.min(4, step + 1) as AddStep)
       return
     }
     void submitAdd()
@@ -117,9 +129,12 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
     const draftIsRice = isMilitaryRice(draft)
     onUpdate(editingItem.id, {
       name: draft.name,
+      manufacturer: draft.manufacturer,
       unit: draftIsRice ? militaryRiceUnit : draft.unit,
       quantity: Number(draft.quantity),
       minimumQuantity: Number(draft.minimumQuantity),
+      unitAmount: draft.unitAmount,
+      purpose: draft.purpose,
       note: draft.note,
       dailyConsumptionEnabled: draftIsRice || draft.dailyConsumptionEnabled === true,
       dailyConsumptionAmount: draftIsRice ? militaryRiceDailyConsumption : Number(draft.dailyConsumptionAmount ?? 0),
@@ -143,7 +158,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
       <div className="inventory-topbar">
         <label className="search-box">
           <Search size={18} />
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="품목 또는 보관위치 검색" value={query} />
+          <input onChange={(event) => setQuery(event.target.value)} placeholder="품명, 업체, 용도 검색" value={query} />
         </label>
         <button className="primary-button inventory-add-button" onClick={() => setAddOpen(true)} type="button">
           <Plus size={18} /> 입력
@@ -168,7 +183,10 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
             <article className={`inventory-card ${isLowStock(item) ? 'low-stock' : ''}`} key={item.id}>
               <header className="inventory-card-header">
                 <div>
-                  <strong>{item.name}</strong>
+                  <strong>
+                    {item.name}
+                    {item.manufacturer ? `(${item.manufacturer})` : ''}
+                  </strong>
                   <small>
                     안전재고 {item.minimumQuantity}
                     {item.unit} · 수정 {formatTime(item.updatedAt)}
@@ -192,6 +210,10 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               <div className="stock-amount">
                 <strong>{formatAmount(item.quantity)}</strong>
                 <span>{item.unit}</span>
+              </div>
+              <div className="inventory-meta-grid">
+                <span>{item.unitAmount ? `개별 ${item.unitAmount}` : '개별기준량 미입력'}</span>
+                <span>{item.purpose ? `용도 ${item.purpose}` : '용도 미입력'}</span>
               </div>
               {daily.enabled && (
                 <p className="daily-consumption-note">
@@ -220,14 +242,14 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
             <header className="modal-header">
               <div>
                 <span>부식재고 입력</span>
-                <h2>{['품명', '수량', '단위', '보관위치'][addStep]}</h2>
+                <h2>{addStepLabels[addStep]}</h2>
               </div>
               <button aria-label="닫기" className="icon-button" onClick={resetAddForm} type="button">
                 <X size={20} />
               </button>
             </header>
             <div className="wizard-progress">
-              {[0, 1, 2, 3].map((step) => (
+              {[0, 1, 2, 3, 4].map((step) => (
                 <span className={step <= addStep ? 'active' : ''} key={step} />
               ))}
             </div>
@@ -235,7 +257,15 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               <input autoFocus onChange={(event) => setName(event.target.value)} placeholder="품명을 입력하세요" value={name} />
             )}
             {addStep === 1 && (
-              <div className="field-line compact-fields">
+              <input
+                autoFocus
+                onChange={(event) => setManufacturer(event.target.value)}
+                placeholder="업체이름을 입력하세요"
+                value={manufacturer}
+              />
+            )}
+            {addStep === 2 && (
+              <div className="inventory-quantity-step">
                 <input
                   autoFocus
                   min={0}
@@ -248,39 +278,31 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 <input
                   min={0}
                   onChange={(event) => setMinimumQuantity(Number(event.target.value))}
-                  placeholder="안전재고"
+                  placeholder="안전재고 또는 주의 기준"
                   step="0.1"
                   type="number"
                   value={minimumQuantity}
                 />
-              </div>
-            )}
-            {addStep === 2 && (
-              <div className="unit-choice-grid">
-                {[...units, customUnitLabel].map((candidate) => (
-                  <button
-                    className={(addIsRice ? militaryRiceUnit : unit) === candidate ? 'active' : ''}
-                    disabled={addIsRice && candidate !== militaryRiceUnit}
-                    key={candidate}
-                    onClick={() => setUnit(candidate)}
-                    type="button"
-                  >
-                    {candidate}
-                  </button>
-                ))}
-                {unit === customUnitLabel && !addIsRice && (
-                  <input onChange={(event) => setCustomUnit(event.target.value)} placeholder="단위를 입력하세요" value={customUnit} />
-                )}
+                <small>수량은 기본적으로 개수 기준으로 등록됩니다. 군량곡은 가마 단위로 고정됩니다.</small>
               </div>
             )}
             {addStep === 3 && (
+              <input
+                autoFocus
+                onChange={(event) => setUnitAmount(event.target.value)}
+                placeholder="예: 500g, 1L, 10kg, 1박스"
+                value={unitAmount}
+              />
+            )}
+            {addStep === 4 && (
               <>
                 <textarea
                   autoFocus
-                  onChange={(event) => setNote(event.target.value)}
-                  placeholder="예: 냉장고 2칸, 창고 좌측 선반, 조리대 앞"
-                  value={note}
+                  onChange={(event) => setPurpose(event.target.value)}
+                  placeholder="예: 조식 김치, 취사용, 예비 보관, 배식용"
+                  value={purpose}
                 />
+                <input onChange={(event) => setNote(event.target.value)} placeholder="메모가 필요하면 입력하세요" value={note} />
                 <section className="daily-consumption-control">
                   <label className="daily-consumption-toggle">
                     <input
@@ -316,7 +338,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               <button className="ghost-button" disabled={addStep === 0} onClick={() => setAddStep((step) => Math.max(0, step - 1) as AddStep)} type="button">
                 이전
               </button>
-              {addStep < 3 ? (
+              {addStep < 4 ? (
                 <button className="primary-button" disabled={!canSubmitAddStep()} type="submit">
                   다음
                 </button>
@@ -343,13 +365,12 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
               </button>
             </header>
             <input onChange={(event) => updateDraft({ name: event.target.value })} placeholder="품목명" value={draft.name} />
+            <input
+              onChange={(event) => updateDraft({ manufacturer: event.target.value })}
+              placeholder="업체이름"
+              value={draft.manufacturer ?? ''}
+            />
             <div className="field-line compact-fields">
-              <input
-                disabled={isMilitaryRice(draft)}
-                onChange={(event) => updateDraft({ unit: event.target.value })}
-                placeholder="단위"
-                value={isMilitaryRice(draft) ? militaryRiceUnit : draft.unit}
-              />
               <input
                 min={0}
                 onChange={(event) => updateDraft({ quantity: Number(event.target.value) })}
@@ -358,16 +379,22 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 type="number"
                 value={draft.quantity}
               />
+              <input
+                min={0}
+                onChange={(event) => updateDraft({ minimumQuantity: Number(event.target.value) })}
+                placeholder="안전재고"
+                step="0.1"
+                type="number"
+                value={draft.minimumQuantity}
+              />
             </div>
             <input
-              min={0}
-              onChange={(event) => updateDraft({ minimumQuantity: Number(event.target.value) })}
-              placeholder="안전재고"
-              step="0.1"
-              type="number"
-              value={draft.minimumQuantity}
+              onChange={(event) => updateDraft({ unitAmount: event.target.value })}
+              placeholder="개별기준량 예: 500g, 1L"
+              value={draft.unitAmount ?? ''}
             />
-            <textarea onChange={(event) => updateDraft({ note: event.target.value })} placeholder="보관위치 또는 메모" value={draft.note ?? ''} />
+            <textarea onChange={(event) => updateDraft({ purpose: event.target.value })} placeholder="용도" value={draft.purpose ?? ''} />
+            <input onChange={(event) => updateDraft({ note: event.target.value })} placeholder="메모" value={draft.note ?? ''} />
             <section className="daily-consumption-control">
               <label className="daily-consumption-toggle">
                 <input

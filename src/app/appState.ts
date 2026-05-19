@@ -793,12 +793,22 @@ export function useAppState() {
     async (
       input: Pick<
         InventoryItem,
-        'name' | 'unit' | 'quantity' | 'minimumQuantity' | 'note' | 'dailyConsumptionEnabled' | 'dailyConsumptionAmount'
+        | 'name'
+        | 'manufacturer'
+        | 'unit'
+        | 'quantity'
+        | 'minimumQuantity'
+        | 'unitAmount'
+        | 'purpose'
+        | 'note'
+        | 'dailyConsumptionEnabled'
+        | 'dailyConsumptionAmount'
       >,
     ) => {
       const trimmed = input.name.trim()
+      const manufacturer = input.manufacturer?.trim()
       if (!trimmed) return false
-      if (inventoryItems.some((item) => item.name === trimmed)) {
+      if (inventoryItems.some((item) => item.name === trimmed && (item.manufacturer?.trim() ?? '') === (manufacturer ?? ''))) {
         setToast('이미 같은 이름의 재고 품목이 있습니다.')
         return false
       }
@@ -811,9 +821,12 @@ export function useAppState() {
         {
           id: createId('inventory'),
           name: trimmed,
+          manufacturer,
           unit: isRice ? militaryRiceUnit : input.unit.trim() || '개',
           quantity: Math.max(0, input.quantity),
           minimumQuantity: Math.max(0, input.minimumQuantity),
+          unitAmount: input.unitAmount?.trim(),
+          purpose: input.purpose?.trim(),
           note: input.note?.trim(),
           dailyConsumptionEnabled: dailyEnabled,
           dailyConsumptionAmount: dailyAmount,
@@ -843,9 +856,12 @@ export function useAppState() {
             ...item,
             ...patch,
             name: nextName,
+            manufacturer: patch.manufacturer === undefined ? item.manufacturer : patch.manufacturer.trim(),
             unit: isRice ? militaryRiceUnit : patch.unit === undefined ? item.unit : patch.unit.trim() || item.unit,
             quantity: patch.quantity === undefined ? item.quantity : Math.max(0, patch.quantity),
             minimumQuantity: patch.minimumQuantity === undefined ? item.minimumQuantity : Math.max(0, patch.minimumQuantity),
+            unitAmount: patch.unitAmount === undefined ? item.unitAmount : patch.unitAmount.trim(),
+            purpose: patch.purpose === undefined ? item.purpose : patch.purpose.trim(),
             note: patch.note === undefined ? item.note : patch.note.trim(),
             dailyConsumptionEnabled: dailyEnabled,
             dailyConsumptionAmount: dailyAmount,

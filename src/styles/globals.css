@@ -2302,6 +2302,22 @@ textarea {
   font-size: 34px;
 }
 
+.inventory-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.inventory-meta-grid span {
+  min-width: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: var(--color-control);
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .stock-actions {
   display: grid;
   grid-template-columns: 38px 38px 1fr 38px;
@@ -2346,7 +2362,7 @@ textarea {
 
 .wizard-progress {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 
@@ -2388,6 +2404,17 @@ textarea {
 
 .unit-choice-grid input {
   grid-column: 1 / -1;
+}
+
+.inventory-quantity-step {
+  display: grid;
+  gap: 8px;
+}
+
+.inventory-quantity-step small {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .daily-consumption-note {
