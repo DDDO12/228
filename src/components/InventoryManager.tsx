@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { Minus, Pencil, Plus, Save, Search, Trash2, X } from 'lucide-react'
 import { ConfirmDialog } from './ConfirmDialog'
 import {
@@ -37,6 +37,33 @@ interface InventoryManagerProps {
 }
 
 const unitAmountUnits = ['g', 'kg', 'L', 'mL', 'ea', '박스']
+const addFieldOrder = [
+  'name',
+  'manufacturer',
+  'quantity',
+  'minimumQuantity',
+  'unitAmountValue',
+  'unitAmountUnit',
+  'expirationDate',
+  'purpose',
+  'note',
+  'dailyConsumptionEnabled',
+  'dailyConsumptionAmount',
+] as const
+const editFieldOrder = [
+  'draftName',
+  'draftManufacturer',
+  'draftQuantity',
+  'draftMinimumQuantity',
+  'draftUnitAmountValue',
+  'draftUnitAmountUnit',
+  'draftExpirationDate',
+  'draftPurpose',
+  'draftNote',
+  'draftDailyConsumptionEnabled',
+  'draftDailyConsumptionAmount',
+] as const
+type InventoryFieldKey = (typeof addFieldOrder)[number] | (typeof editFieldOrder)[number]
 
 function formatAmount(value: number) {
   return Number(value.toFixed(2)).toString()
@@ -93,6 +120,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   const [note, setNote] = useState('')
   const [dailyConsumptionEnabled, setDailyConsumptionEnabled] = useState(false)
   const [dailyConsumptionAmount, setDailyConsumptionAmount] = useState(0)
+  const [activeField, setActiveField] = useState<InventoryFieldKey>('name')
 
   const filtered = items.filter((item) =>
     matchesSearch(query, [item.name, item.manufacturer, item.unitAmount, item.expirationDate, item.purpose, item.note]),
@@ -104,6 +132,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
 
   function resetAddForm() {
     setAddOpen(false)
+    setActiveField('name')
     setName('')
     setManufacturer('')
     setQuantity(0)
@@ -149,6 +178,7 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   function openEdit(item: InventoryItem) {
     const daily = resolveDailyConsumption(item)
     setEditingItem(item)
+    setActiveField('draftName')
     setDraft({
       ...item,
       dailyConsumptionEnabled: daily.enabled,
@@ -183,11 +213,47 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
   function closeEdit() {
     setEditingItem(undefined)
     setDraft(undefined)
+    setActiveField('name')
   }
 
   function handleEditSubmit(event: FormEvent) {
     event.preventDefault()
     saveDraft()
+  }
+
+  function focusField(field?: InventoryFieldKey) {
+    if (!field) return
+    setActiveField(field)
+    const target = document.querySelector<HTMLElement>(`[data-field-key="${field}"]`)
+    if (target instanceof HTMLElement) requestAnimationFrame(() => target.focus())
+  }
+
+  function handleSequentialEnter(
+    event: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+    order: readonly InventoryFieldKey[],
+    currentField: InventoryFieldKey,
+    onComplete: () => void,
+  ) {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    const currentIndex = order.indexOf(currentField)
+    const nextField = order[currentIndex + 1]
+    if (!nextField) {
+      onComplete()
+      return
+    }
+    if (nextField === 'dailyConsumptionAmount' && !addDailyEnabled && currentField !== 'dailyConsumptionEnabled') {
+      onComplete()
+      return
+    }
+    if (
+      nextField === 'draftDailyConsumptionAmount' &&
+      !(draft && (isMilitaryRice(draft) || draft.dailyConsumptionEnabled === true))
+    ) {
+      onComplete()
+      return
+    }
+    focusField(nextField)
   }
 
   return (
@@ -285,26 +351,51 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 <X size={20} />
               </button>
             </header>
-            <input autoFocus onChange={(event) => setName(event.target.value)} placeholder="품명을 입력하세요" value={name} />
-            <input onChange={(event) => setManufacturer(event.target.value)} placeholder="업체이름" value={manufacturer} />
+            <div className={`field-focus-shell ${activeField === 'name' ? 'active' : ''}`}>
+              <input
+                autoFocus
+                onChange={(event) => setName(event.target.value)}
+                onFocus={() => setActiveField('name')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'name', () => void submitAdd())}
+                placeholder="품명을 입력하세요"
+                data-field-key="name"
+                value={name}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'manufacturer' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => setManufacturer(event.target.value)}
+                onFocus={() => setActiveField('manufacturer')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'manufacturer', () => void submitAdd())}
+                placeholder="업체이름"
+                data-field-key="manufacturer"
+                value={manufacturer}
+              />
+            </div>
             <div className="field-line compact-fields">
-              <label className="input-guide">
+              <label className={`input-guide ${activeField === 'quantity' ? 'active' : ''}`}>
                 <span>현재고</span>
                 <input
                   min={0}
                   onChange={(event) => setQuantity(Number(event.target.value))}
+                  onFocus={() => setActiveField('quantity')}
+                  onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'quantity', () => void submitAdd())}
                   placeholder="현재 수량"
+                  data-field-key="quantity"
                   step="0.1"
                   type="number"
                   value={quantity}
                 />
               </label>
-              <label className="input-guide">
+              <label className={`input-guide ${activeField === 'minimumQuantity' ? 'active' : ''}`}>
                 <span>안전재고</span>
                 <input
                   min={0}
                   onChange={(event) => setMinimumQuantity(Number(event.target.value))}
+                  onFocus={() => setActiveField('minimumQuantity')}
+                  onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'minimumQuantity', () => void submitAdd())}
                   placeholder="안전재고 또는 주의 기준"
+                  data-field-key="minimumQuantity"
                   step="0.1"
                   type="number"
                   value={minimumQuantity}
@@ -313,14 +404,25 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
             </div>
             <div className="unit-amount-row">
               <input
+                className={activeField === 'unitAmountValue' ? 'field-focus-active' : ''}
                 min={0}
                 onChange={(event) => setUnitAmountValue(event.target.value)}
+                onFocus={() => setActiveField('unitAmountValue')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'unitAmountValue', () => void submitAdd())}
                 placeholder="개별기준량"
+                data-field-key="unitAmountValue"
                 step="0.1"
                 type="number"
                 value={unitAmountValue}
               />
-              <select onChange={(event) => setUnitAmountUnit(event.target.value)} value={unitAmountUnit}>
+              <select
+                className={activeField === 'unitAmountUnit' ? 'field-focus-active' : ''}
+                onChange={(event) => setUnitAmountUnit(event.target.value)}
+                onFocus={() => setActiveField('unitAmountUnit')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'unitAmountUnit', () => void submitAdd())}
+                data-field-key="unitAmountUnit"
+                value={unitAmountUnit}
+              >
                 {unitAmountUnits.map((candidate) => (
                   <option key={candidate} value={candidate}>
                     {candidate}
@@ -328,19 +430,45 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 ))}
               </select>
             </div>
-            <input onChange={(event) => setExpirationDate(event.target.value)} type="date" value={expirationDate} />
-            <textarea
-              onChange={(event) => setPurpose(event.target.value)}
-              placeholder="용도 예: 조식 김치, 취사용, 예비 보관"
-              value={purpose}
-            />
-            <input onChange={(event) => setNote(event.target.value)} placeholder="메모가 필요하면 입력하세요" value={note} />
-            <section className="daily-consumption-control">
+            <div className={`field-focus-shell ${activeField === 'expirationDate' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => setExpirationDate(event.target.value)}
+                onFocus={() => setActiveField('expirationDate')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'expirationDate', () => void submitAdd())}
+                data-field-key="expirationDate"
+                type="date"
+                value={expirationDate}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'purpose' ? 'active' : ''}`}>
+              <textarea
+                onChange={(event) => setPurpose(event.target.value)}
+                onFocus={() => setActiveField('purpose')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'purpose', () => void submitAdd())}
+                placeholder="용도 예: 조식 김치, 취사용, 예비 보관"
+                data-field-key="purpose"
+                value={purpose}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'note' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => setNote(event.target.value)}
+                onFocus={() => setActiveField('note')}
+                onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'note', () => void submitAdd())}
+                placeholder="메모가 필요하면 입력하세요"
+                data-field-key="note"
+                value={note}
+              />
+            </div>
+            <section className={`daily-consumption-control ${activeField === 'dailyConsumptionEnabled' || activeField === 'dailyConsumptionAmount' ? 'active' : ''}`}>
               <label className="daily-consumption-toggle">
                 <input
                   checked={addDailyEnabled}
                   disabled={addIsRice}
                   onChange={(event) => setDailyConsumptionEnabled(event.target.checked)}
+                  onFocus={() => setActiveField('dailyConsumptionEnabled')}
+                  onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'dailyConsumptionEnabled', () => void submitAdd())}
+                  data-field-key="dailyConsumptionEnabled"
                   type="checkbox"
                 />
                 <span>일자별 자동 소진</span>
@@ -352,6 +480,9 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                     disabled={addIsRice}
                     min={0}
                     onChange={(event) => setDailyConsumptionAmount(Number(event.target.value))}
+                    onFocus={() => setActiveField('dailyConsumptionAmount')}
+                    onKeyDown={(event) => handleSequentialEnter(event, addFieldOrder, 'dailyConsumptionAmount', () => void submitAdd())}
+                    data-field-key="dailyConsumptionAmount"
                     step="0.1"
                     type="number"
                     value={addDailyAmount}
@@ -388,30 +519,50 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 <X size={20} />
               </button>
             </header>
-            <input onChange={(event) => updateDraft({ name: event.target.value })} placeholder="품목명" value={draft.name} />
-            <input
-              onChange={(event) => updateDraft({ manufacturer: event.target.value })}
-              placeholder="업체이름"
-              value={draft.manufacturer ?? ''}
-            />
+            <div className={`field-focus-shell ${activeField === 'draftName' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => updateDraft({ name: event.target.value })}
+                onFocus={() => setActiveField('draftName')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftName', saveDraft)}
+                placeholder="품목명"
+                data-field-key="draftName"
+                value={draft.name}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'draftManufacturer' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => updateDraft({ manufacturer: event.target.value })}
+                onFocus={() => setActiveField('draftManufacturer')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftManufacturer', saveDraft)}
+                placeholder="업체이름"
+                data-field-key="draftManufacturer"
+                value={draft.manufacturer ?? ''}
+              />
+            </div>
             <div className="field-line compact-fields">
-              <label className="input-guide">
+              <label className={`input-guide ${activeField === 'draftQuantity' ? 'active' : ''}`}>
                 <span>현재고</span>
                 <input
                   min={0}
                   onChange={(event) => updateDraft({ quantity: Number(event.target.value) })}
+                  onFocus={() => setActiveField('draftQuantity')}
+                  onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftQuantity', saveDraft)}
                   placeholder="현재 남은 수량"
+                  data-field-key="draftQuantity"
                   step="0.1"
                   type="number"
                   value={draft.quantity}
                 />
               </label>
-              <label className="input-guide">
+              <label className={`input-guide ${activeField === 'draftMinimumQuantity' ? 'active' : ''}`}>
                 <span>안전재고</span>
                 <input
                   min={0}
                   onChange={(event) => updateDraft({ minimumQuantity: Number(event.target.value) })}
+                  onFocus={() => setActiveField('draftMinimumQuantity')}
+                  onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftMinimumQuantity', saveDraft)}
                   placeholder="주의 알림 기준"
+                  data-field-key="draftMinimumQuantity"
                   step="0.1"
                   type="number"
                   value={draft.minimumQuantity}
@@ -420,14 +571,25 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
             </div>
             <div className="unit-amount-row">
               <input
+                className={activeField === 'draftUnitAmountValue' ? 'field-focus-active' : ''}
                 min={0}
                 onChange={(event) => updateDraft({ unitAmount: composeUnitAmount(event.target.value, draftUnitAmount.unit) })}
+                onFocus={() => setActiveField('draftUnitAmountValue')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftUnitAmountValue', saveDraft)}
                 placeholder="개별기준량"
+                data-field-key="draftUnitAmountValue"
                 step="0.1"
                 type="number"
                 value={draftUnitAmount.amount}
               />
-              <select onChange={(event) => updateDraft({ unitAmount: composeUnitAmount(draftUnitAmount.amount, event.target.value) })} value={draftUnitAmount.unit}>
+              <select
+                className={activeField === 'draftUnitAmountUnit' ? 'field-focus-active' : ''}
+                onChange={(event) => updateDraft({ unitAmount: composeUnitAmount(draftUnitAmount.amount, event.target.value) })}
+                onFocus={() => setActiveField('draftUnitAmountUnit')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftUnitAmountUnit', saveDraft)}
+                data-field-key="draftUnitAmountUnit"
+                value={draftUnitAmount.unit}
+              >
                 {unitAmountUnits.map((candidate) => (
                   <option key={candidate} value={candidate}>
                     {candidate}
@@ -435,19 +597,45 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                 ))}
               </select>
             </div>
-            <input
-              onChange={(event) => updateDraft({ expirationDate: event.target.value })}
-              type="date"
-              value={draft.expirationDate ?? ''}
-            />
-            <textarea onChange={(event) => updateDraft({ purpose: event.target.value })} placeholder="용도" value={draft.purpose ?? ''} />
-            <input onChange={(event) => updateDraft({ note: event.target.value })} placeholder="메모" value={draft.note ?? ''} />
-            <section className="daily-consumption-control">
+            <div className={`field-focus-shell ${activeField === 'draftExpirationDate' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => updateDraft({ expirationDate: event.target.value })}
+                onFocus={() => setActiveField('draftExpirationDate')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftExpirationDate', saveDraft)}
+                data-field-key="draftExpirationDate"
+                type="date"
+                value={draft.expirationDate ?? ''}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'draftPurpose' ? 'active' : ''}`}>
+              <textarea
+                onChange={(event) => updateDraft({ purpose: event.target.value })}
+                onFocus={() => setActiveField('draftPurpose')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftPurpose', saveDraft)}
+                placeholder="용도"
+                data-field-key="draftPurpose"
+                value={draft.purpose ?? ''}
+              />
+            </div>
+            <div className={`field-focus-shell ${activeField === 'draftNote' ? 'active' : ''}`}>
+              <input
+                onChange={(event) => updateDraft({ note: event.target.value })}
+                onFocus={() => setActiveField('draftNote')}
+                onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftNote', saveDraft)}
+                placeholder="메모"
+                data-field-key="draftNote"
+                value={draft.note ?? ''}
+              />
+            </div>
+            <section className={`daily-consumption-control ${activeField === 'draftDailyConsumptionEnabled' || activeField === 'draftDailyConsumptionAmount' ? 'active' : ''}`}>
               <label className="daily-consumption-toggle">
                 <input
                   checked={isMilitaryRice(draft) || draft.dailyConsumptionEnabled === true}
                   disabled={isMilitaryRice(draft)}
                   onChange={(event) => updateDraft({ dailyConsumptionEnabled: event.target.checked })}
+                  onFocus={() => setActiveField('draftDailyConsumptionEnabled')}
+                  onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftDailyConsumptionEnabled', saveDraft)}
+                  data-field-key="draftDailyConsumptionEnabled"
                   type="checkbox"
                 />
                 <span>일자별 자동 소진</span>
@@ -459,6 +647,9 @@ export function InventoryManager({ items, onAdd, onAdjust, onDelete, onUpdate }:
                     disabled={isMilitaryRice(draft)}
                     min={0}
                     onChange={(event) => updateDraft({ dailyConsumptionAmount: Number(event.target.value) })}
+                    onFocus={() => setActiveField('draftDailyConsumptionAmount')}
+                    onKeyDown={(event) => handleSequentialEnter(event, editFieldOrder, 'draftDailyConsumptionAmount', saveDraft)}
+                    data-field-key="draftDailyConsumptionAmount"
                     step="0.1"
                     type="number"
                     value={isMilitaryRice(draft) ? militaryRiceDailyConsumption : draft.dailyConsumptionAmount ?? 0}

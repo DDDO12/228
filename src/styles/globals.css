@@ -2836,6 +2836,23 @@ textarea {
   min-height: 120px;
 }
 
+.field-focus-shell {
+  border-radius: 8px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.field-focus-shell.active {
+  background: rgba(15, 118, 110, 0.05);
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.2), 0 0 0 4px rgba(15, 118, 110, 0.08);
+  transform: translateY(-1px);
+}
+
+.field-focus-shell.active input,
+.field-focus-shell.active textarea {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #f8fffd;
+}
+
 .modal-header span {
   color: var(--color-muted);
   font-size: 13px;
@@ -2918,15 +2935,35 @@ textarea {
   font-weight: 800;
 }
 
+.field-focus-active {
+  border-color: rgba(15, 118, 110, 0.28) !important;
+  background: #f8fffd !important;
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.18), 0 0 0 4px rgba(15, 118, 110, 0.08);
+}
+
 .input-guide {
   display: grid;
   gap: 6px;
+  border-radius: 8px;
+  padding: 6px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .input-guide span {
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.input-guide.active {
+  background: rgba(15, 118, 110, 0.05);
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.2), 0 0 0 4px rgba(15, 118, 110, 0.08);
+  transform: translateY(-1px);
+}
+
+.input-guide.active input {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #f8fffd;
 }
 
 .daily-consumption-note {
@@ -2943,6 +2980,13 @@ textarea {
   border-radius: 6px;
   padding: 12px;
   background: var(--color-control);
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.daily-consumption-control.active {
+  background: rgba(15, 118, 110, 0.06);
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.2), 0 0 0 4px rgba(15, 118, 110, 0.08);
+  transform: translateY(-1px);
 }
 
 .daily-consumption-toggle,
