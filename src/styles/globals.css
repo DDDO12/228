@@ -1994,11 +1994,11 @@ textarea {
   opacity: 0.72;
 }
 
-.ticket-buyer-grid {
+.ticket-buyer-board {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
-  gap: 8px;
+  gap: 10px;
 }
 
 .ticket-buyer-list-tools {
@@ -2022,55 +2022,39 @@ textarea {
   opacity: 0.62;
 }
 
-.ticket-buyer-card {
-  align-self: start;
+.ticket-buyer-row {
   display: grid;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 10px;
+  border-radius: 14px;
+  padding: 14px;
   background: var(--color-surface);
   box-shadow: var(--shadow-panel);
 }
 
-.ticket-buyer-card header {
+.ticket-buyer-row-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
   min-width: 0;
 }
 
-.ticket-buyer-card header strong {
+.ticket-buyer-row-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.ticket-buyer-row-copy strong {
   min-width: 0;
   overflow: hidden;
-  font-size: 16px;
+  font-size: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.ticket-buyer-toggle {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  flex: 1 1 auto;
-  gap: 8px;
-  min-width: 0;
-  border: 0;
-  border-radius: 6px;
-  padding: 2px 4px;
-  background: transparent;
-  color: var(--color-text);
-  text-align: left;
-}
-
-.ticket-buyer-toggle > span {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.ticket-buyer-toggle small {
+.ticket-buyer-row-copy small {
   min-width: 0;
   overflow: hidden;
   color: var(--color-muted);
@@ -2101,11 +2085,66 @@ textarea {
   color: var(--color-danger-strong);
 }
 
+.ticket-buyer-inline-meals,
 .ticket-buyer-detail {
   display: grid;
   gap: 8px;
+}
+
+.ticket-buyer-inline-meals {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.ticket-buyer-inline-meals button,
+.ticket-buyer-balance button {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 52px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 8px 4px;
+  background: #f7f9fa;
+  color: var(--color-muted);
+  font-weight: 800;
+}
+
+.ticket-buyer-inline-meals span,
+.ticket-buyer-balance span {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ticket-buyer-inline-meals small {
+  color: inherit;
+  font-size: 11px;
+}
+
+.ticket-buyer-inline-meals button.active.ticket {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ticket-buyer-inline-meals button.active.unpaid {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.ticket-buyer-detail {
   padding-top: 8px;
   border-top: 1px solid rgba(31, 41, 51, 0.08);
+}
+
+.ticket-buyer-detail-caption {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .ticket-buyer-history-strip {
@@ -2133,56 +2172,14 @@ textarea {
   font-size: 15px;
 }
 
-.ticket-buyer-meals,
 .ticket-buyer-balance {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
 }
 
-.ticket-buyer-meals button,
 .ticket-buyer-balance button {
-  display: grid;
-  place-items: center;
-  gap: 2px;
-  min-width: 0;
-  min-height: 48px;
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  padding: 6px 4px;
-  background: var(--color-control);
-  color: var(--color-muted);
-  font-weight: 800;
-}
-
-.ticket-buyer-meals span,
-.ticket-buyer-balance span {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ticket-buyer-meals small {
-  color: inherit;
-  font-size: 11px;
-}
-
-.ticket-buyer-meals button.active.ticket {
-  border-color: var(--color-primary-border);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.ticket-buyer-meals button.active.unpaid {
-  border-color: var(--color-danger-border);
-  background: var(--color-danger-soft);
-  color: var(--color-danger);
-}
-
-.ticket-buyer-balance button {
-  min-height: 36px;
+  min-height: 42px;
 }
 
 .ticket-buyer-balance button.purchase {
@@ -3367,10 +3364,6 @@ textarea {
   }
 
   .memo-shopping-form {
-    grid-template-columns: 1fr;
-  }
-
-  .ticket-buyer-grid {
     grid-template-columns: 1fr;
   }
 

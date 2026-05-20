@@ -143,7 +143,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
-          <h2>식권구매자 배치</h2>
+          <h2>오늘 식사 체크</h2>
           <div className="ticket-buyer-list-tools">
             <small>{visibleBuyers.length}명</small>
             <button disabled={visibleBuyers.length === 0} onClick={toggleAllVisibleBuyers} type="button">
@@ -152,29 +152,29 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           </div>
         </div>
         {visibleBuyers.length > 0 ? (
-          <div className="ticket-buyer-grid">
+          <div className="ticket-buyer-board">
             {visibleBuyers.map((officer) => {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
               const history = getHistory(officer.id)
               const isExpanded = expandedBuyerIds.includes(officer.id)
               const summary = getBuyerSummary(officer.id, balance)
               return (
-                <article className={`ticket-buyer-card ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
-                  <header>
-                    <button
-                      aria-expanded={isExpanded}
-                      className="ticket-buyer-toggle"
-                      onClick={() => toggleBuyerExpanded(officer.id)}
-                      type="button"
-                    >
-                      <span>
-                        <strong>{officer.name}</strong>
-                        <small>{summary}</small>
-                        <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
-                      </span>
-                      {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-                    </button>
+                <article className={`ticket-buyer-row ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
+                  <header className="ticket-buyer-row-header">
+                    <div className="ticket-buyer-row-copy">
+                      <strong>{officer.name}</strong>
+                      <small>{summary}</small>
+                      <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
+                    </div>
                     <div className="ticket-buyer-actions">
+                      <button
+                        aria-expanded={isExpanded}
+                        aria-label={`${officer.name} 상세 열기`}
+                        onClick={() => toggleBuyerExpanded(officer.id)}
+                        type="button"
+                      >
+                        {isExpanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
+                      </button>
                       <button aria-label={`${officer.name} 이름 수정`} onClick={() => openEditBuyer(officer)} type="button">
                         <Pencil size={17} />
                       </button>
@@ -183,6 +183,22 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       </button>
                     </div>
                   </header>
+                  <div className="ticket-buyer-inline-meals" aria-label={`${officer.name} 오늘 식사 체크`}>
+                    {mealOrder.map((meal) => {
+                      const use = findTodayUse(officer.id, meal)
+                      return (
+                        <button
+                          className={use ? `active ${use.status}` : ''}
+                          key={meal}
+                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                          type="button"
+                        >
+                          <span>{mealLabels[meal]}</span>
+                          <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
+                        </button>
+                      )
+                    })}
+                  </div>
                   {isExpanded && (
                     <div className="ticket-buyer-detail">
                       <div className="ticket-buyer-history-strip" aria-label={`${officer.name} 누적 식수`}>
@@ -201,22 +217,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                           </strong>
                         </div>
                       </div>
-                      <div className="ticket-buyer-meals" aria-label={`${officer.name} 오늘 식사 배치`}>
-                        {mealOrder.map((meal) => {
-                          const use = findTodayUse(officer.id, meal)
-                          return (
-                            <button
-                              className={use ? `active ${use.status}` : ''}
-                              key={meal}
-                              onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
-                              type="button"
-                            >
-                              <span>{mealLabels[meal]}</span>
-                              <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
-                            </button>
-                          )
-                        })}
-                      </div>
+                      <div className="ticket-buyer-detail-caption">잔여 식권 / 추가 구매 / 취소</div>
                       <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
                         {mealOrder.map((meal) => {
                           const count = balance[meal]
