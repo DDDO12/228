@@ -19,6 +19,7 @@ import {
 import type { DayMemo, ShoppingMemoItem } from '../domain/memo'
 import {
   createOfficerBalanceMap,
+  normalizeOfficerMealUse,
   normalizeOfficerTicketPurchase,
   type Officer,
   type OfficerMealUse,
@@ -231,7 +232,7 @@ export function useAppState() {
       setInventoryItems(dailyInventory.items)
       setMemos(storedMemos)
       setOfficers(storedOfficers)
-      setOfficerMealUses(storedOfficerUses)
+      setOfficerMealUses(storedOfficerUses.map((use) => normalizeOfficerMealUse(use)))
       setOfficerTicketPurchases(
         storedOfficerPurchases.map((purchase) =>
           normalizeOfficerTicketPurchase(purchase as OfficerTicketPurchase & { date?: string }),
@@ -1017,6 +1018,7 @@ export function useAppState() {
           officerId: officer.id,
           officerName: officer.name,
           status,
+          checkStatus: 'planned',
           createdAt: now,
           updatedAt: now,
         })
@@ -1099,6 +1101,16 @@ export function useAppState() {
   const deleteOfficerMealUse = useCallback(
     async (id: string) => {
       await persistOfficerMealUses(officerMealUses.filter((use) => use.id !== id))
+    },
+    [officerMealUses, persistOfficerMealUses],
+  )
+
+  const setOfficerMealUseCheckStatus = useCallback(
+    async (id: string, checkStatus: OfficerMealUse['checkStatus']) => {
+      const now = nowIso()
+      await persistOfficerMealUses(
+        officerMealUses.map((use) => (use.id === id ? { ...use, checkStatus, updatedAt: now } : use)),
+      )
     },
     [officerMealUses, persistOfficerMealUses],
   )
@@ -1206,7 +1218,7 @@ export function useAppState() {
     const nextInventory = applyDailyInventoryConsumption(backup.inventoryItems ?? [], toDateInputValue()).items
     const nextMemos = backup.memos ?? []
     const nextOfficers = backup.officers ?? []
-    const nextOfficerUses = backup.officerMealUses ?? []
+    const nextOfficerUses = (backup.officerMealUses ?? []).map((use) => normalizeOfficerMealUse(use))
     const nextOfficerPurchases = (backup.officerTicketPurchases ?? []).map((purchase) =>
       normalizeOfficerTicketPurchase(purchase as OfficerTicketPurchase & { date?: string }),
     )
@@ -1302,6 +1314,7 @@ export function useAppState() {
     resetCurrentRecord,
     saveMemo,
     scheduleSoldierLeave,
+    setOfficerMealUseCheckStatus,
     setAttendanceStatus,
     setScheduledException,
     setDate,

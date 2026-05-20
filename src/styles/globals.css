@@ -2172,6 +2172,24 @@ textarea {
   color: var(--color-danger);
 }
 
+.ticket-buyer-meal-cell.active.state-planned {
+  border-color: rgba(37, 99, 235, 0.16);
+  background: #f3f7ff;
+  color: #1d4ed8;
+}
+
+.ticket-buyer-meal-cell.active.state-ate {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ticket-buyer-meal-cell.active.state-missed {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
 .ticket-buyer-detail {
   grid-column: 1 / -1;
   padding: 12px 0 14px;
@@ -2183,6 +2201,70 @@ textarea {
   color: var(--color-muted);
   font-size: 12px;
   font-weight: 800;
+}
+
+.ticket-buyer-check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ticket-buyer-check-card {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+  background: #ffffff;
+}
+
+.ticket-buyer-check-head {
+  display: grid;
+  gap: 2px;
+}
+
+.ticket-buyer-check-head strong {
+  font-size: 13px;
+}
+
+.ticket-buyer-check-head span {
+  color: var(--color-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ticket-buyer-check-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.ticket-buyer-check-actions button,
+.ticket-buyer-check-create,
+.ticket-buyer-check-remove {
+  min-height: 34px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-control);
+  color: var(--color-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ticket-buyer-check-actions button.active {
+  border-color: var(--color-primary-border);
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ticket-buyer-check-remove {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.ticket-buyer-check-create {
+  background: var(--color-surface);
 }
 
 .ticket-schedule-list {

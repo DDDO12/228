@@ -17,6 +17,7 @@ export interface OfficerMealUse {
   officerId: string
   officerName: string
   status: 'ticket' | 'unpaid'
+  checkStatus: 'planned' | 'ate' | 'missed'
   createdAt: string
   updatedAt: string
 }
@@ -55,6 +56,17 @@ interface OfficerUseHistoryDraft {
 
 export function emptyOfficerTicketBalance(): OfficerTicketBalance {
   return { breakfast: 0, lunch: 0, dinner: 0 }
+}
+
+export function normalizeOfficerMealUse(
+  use: OfficerMealUse & {
+    checkStatus?: OfficerMealUse['checkStatus']
+  },
+): OfficerMealUse {
+  return {
+    ...use,
+    checkStatus: use.checkStatus ?? 'ate',
+  }
 }
 
 export function normalizeOfficerTicketPurchase(

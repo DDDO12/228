@@ -74,22 +74,25 @@ export function formatOfficerMealReport(dateValue: string, uses: OfficerMealUse[
     .filter((use) => use.date === dateValue)
     .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
   const total = dayUses.length
-  const ticketTotal = dayUses.filter((use) => use.status === 'ticket').length
-  const unpaidTotal = dayUses.filter((use) => use.status === 'unpaid').length
+  const ateTotal = dayUses.filter((use) => use.checkStatus === 'ate').length
+  const plannedTotal = dayUses.filter((use) => use.checkStatus === 'planned').length
+  const missedTotal = dayUses.filter((use) => use.checkStatus === 'missed').length
   const lines = [`[${dateLabel} 간부 식수 현황]`, '']
 
   mealOrder.forEach((meal) => {
     const mealUses = dayUses.filter((use) => use.meal === meal)
-    const ticketNames = mealUses.filter((use) => use.status === 'ticket').map((use) => use.officerName)
-    const unpaidNames = mealUses.filter((use) => use.status === 'unpaid').map((use) => use.officerName)
-    lines.push(`${mealLabels[meal]}: 총 ${mealUses.length}명 · 구매 ${ticketNames.length}명 · 미구매 ${unpaidNames.length}명`)
-    if (ticketNames.length > 0) lines.push(`- 구매: ${ticketNames.join(', ')}`)
-    if (unpaidNames.length > 0) lines.push(`- 미구매: ${unpaidNames.join(', ')}`)
+    const ateNames = mealUses.filter((use) => use.checkStatus === 'ate').map((use) => use.officerName)
+    const plannedNames = mealUses.filter((use) => use.checkStatus === 'planned').map((use) => use.officerName)
+    const missedNames = mealUses.filter((use) => use.checkStatus === 'missed').map((use) => use.officerName)
+    lines.push(`${mealLabels[meal]}: 총 ${mealUses.length}명 · 식사함 ${ateNames.length}명 · 확인전 ${plannedNames.length}명 · 미식사 ${missedNames.length}명`)
+    if (ateNames.length > 0) lines.push(`- 식사함: ${ateNames.join(', ')}`)
+    if (plannedNames.length > 0) lines.push(`- 확인전: ${plannedNames.join(', ')}`)
+    if (missedNames.length > 0) lines.push(`- 미식사: ${missedNames.join(', ')}`)
     if (mealUses.length === 0) lines.push('- 없음')
     lines.push('')
   })
 
-  lines.push(`합계: 총 ${total}명 · 구매 ${ticketTotal}명 · 미구매 ${unpaidTotal}명`)
+  lines.push(`합계: 총 ${total}명 · 식사함 ${ateTotal}명 · 확인전 ${plannedTotal}명 · 미식사 ${missedTotal}명`)
   const cumulativeLines = Array.from(new Map(dayUses.map((use) => [use.officerId, use])).values())
     .sort((a, b) => a.officerName.localeCompare(b.officerName, 'ko'))
     .map((use) => {
