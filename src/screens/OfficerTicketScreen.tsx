@@ -193,123 +193,125 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
           </div>
         </div>
         {visibleBuyers.length > 0 ? (
-          <div className="ticket-buyer-board">
-            <div className="ticket-buyer-board-head" aria-hidden="true">
-              <span>이름</span>
-              <span>조식</span>
-              <span>중식</span>
-              <span>석식</span>
-              <span>관리</span>
-            </div>
-            {visibleBuyers.map((officer) => {
-              const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
-              const history = getHistory(officer.id)
-              const isExpanded = expandedBuyerIds.includes(officer.id)
-              const officerScheduledPurchases = scheduledPurchases.filter((purchase) => purchase.officerId === officer.id)
-              return (
-                <article className={`ticket-buyer-row ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
-                  <header className="ticket-buyer-row-header">
-                    <div className="ticket-buyer-row-copy">
-                      <strong>{officer.name}</strong>
-                      <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
-                    </div>
-                    {mealOrder.map((meal) => {
-                      const use = findTodayUse(officer.id, meal)
-                      return (
+          <div className="ticket-buyer-board-scroll">
+            <div className="ticket-buyer-board">
+              <div className="ticket-buyer-board-head" aria-hidden="true">
+                <span>이름</span>
+                <span>조식</span>
+                <span>중식</span>
+                <span>석식</span>
+                <span>관리</span>
+              </div>
+              {visibleBuyers.map((officer) => {
+                const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
+                const history = getHistory(officer.id)
+                const isExpanded = expandedBuyerIds.includes(officer.id)
+                const officerScheduledPurchases = scheduledPurchases.filter((purchase) => purchase.officerId === officer.id)
+                return (
+                  <article className={`ticket-buyer-row ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
+                    <header className="ticket-buyer-row-header">
+                      <div className="ticket-buyer-row-copy">
+                        <strong>{officer.name}</strong>
+                        <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
+                      </div>
+                      {mealOrder.map((meal) => {
+                        const use = findTodayUse(officer.id, meal)
+                        return (
+                          <button
+                            aria-label={`${officer.name} ${mealLabels[meal]} ${use ? '해제' : '등록'}`}
+                            className={`ticket-buyer-meal-cell ${use ? `active ${use.status}` : ''}`}
+                            key={meal}
+                            onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                            type="button"
+                          >
+                            <span>{use ? '완료' : '등록'}</span>
+                          </button>
+                        )
+                      })}
+                      <div className="ticket-buyer-actions">
                         <button
-                          aria-label={`${officer.name} ${mealLabels[meal]} ${use ? '해제' : '등록'}`}
-                          className={`ticket-buyer-meal-cell ${use ? `active ${use.status}` : ''}`}
-                          key={meal}
-                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                          aria-expanded={isExpanded}
+                          aria-label={`${officer.name} 상세 열기`}
+                          onClick={() => toggleBuyerExpanded(officer.id)}
                           type="button"
                         >
-                          <span>{use ? '완료' : '등록'}</span>
+                          {isExpanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
                         </button>
-                      )
-                    })}
-                    <div className="ticket-buyer-actions">
-                      <button
-                        aria-expanded={isExpanded}
-                        aria-label={`${officer.name} 상세 열기`}
-                        onClick={() => toggleBuyerExpanded(officer.id)}
-                        type="button"
-                      >
-                        {isExpanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
-                      </button>
-                      <button aria-label={`${officer.name} 이름 수정`} onClick={() => openEditBuyer(officer)} type="button">
-                        <Pencil size={17} />
-                      </button>
-                      <button aria-label={`${officer.name} 삭제`} onClick={() => handleDeleteBuyer(officer)} type="button">
-                        <Trash2 size={17} />
-                      </button>
-                    </div>
-                  </header>
-                  {isExpanded && (
-                    <div className="ticket-buyer-detail">
-                      <div className="ticket-buyer-history-strip" aria-label={`${officer.name} 누적 식수`}>
-                        <div>
-                          <span>누적</span>
-                          <strong>{history.dayCount}일</strong>
-                        </div>
-                        <div>
-                          <span>총 식수</span>
-                          <strong>{history.mealCount}식</strong>
-                        </div>
-                        <div>
-                          <span>구매/미구매</span>
-                          <strong>
-                            {history.ticketCount}/{history.unpaidCount}
-                          </strong>
-                        </div>
+                        <button aria-label={`${officer.name} 이름 수정`} onClick={() => openEditBuyer(officer)} type="button">
+                          <Pencil size={17} />
+                        </button>
+                        <button aria-label={`${officer.name} 삭제`} onClick={() => handleDeleteBuyer(officer)} type="button">
+                          <Trash2 size={17} />
+                        </button>
                       </div>
-                      <div className="ticket-buyer-detail-caption">잔여 식권 / 추가 구매 / 취소</div>
-                      <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
-                        {mealOrder.map((meal) => {
-                          const count = balance[meal]
-                          const use = findTodayUse(officer.id, meal)
-                          const shouldCancel = count > 0 && use?.status !== 'unpaid'
-                          return (
-                            <button
-                              className={shouldCancel ? 'cancel' : 'purchase'}
-                              key={meal}
-                              onClick={() =>
-                                shouldCancel
-                                  ? void app.cancelOfficerTicket(officer.id, meal, 1, app.date)
-                                  : purchaseMealTicket(officer.name, meal)
-                              }
-                              title={shouldCancel ? `${mealLabels[meal]} 식권 1장 취소` : `${mealLabels[meal]} 식권 1장 구매`}
-                              type="button"
-                            >
-                              <span>
-                                {mealLabels[meal]} {shouldCancel ? count : '구매'}
-                              </span>
-                              {shouldCancel ? <Trash2 size={14} /> : <Ticket size={14} />}
-                            </button>
-                          )
-                        })}
-                      </div>
-                      <div className="ticket-buyer-detail-caption">예정 식권 구매</div>
-                      {officerScheduledPurchases.length > 0 ? (
-                        <div className="ticket-schedule-list">
-                          {officerScheduledPurchases.map((purchase) => (
-                            <div key={purchase.id}>
-                              <span>
-                                {purchase.targetDate} · {mealLabels[purchase.meal]} · {purchase.quantity}장
-                              </span>
-                              <button onClick={() => void app.cancelOfficerTicket(officer.id, purchase.meal, 1, purchase.targetDate)} type="button">
-                                취소
+                    </header>
+                    {isExpanded && (
+                      <div className="ticket-buyer-detail">
+                        <div className="ticket-buyer-history-strip" aria-label={`${officer.name} 누적 식수`}>
+                          <div>
+                            <span>누적</span>
+                            <strong>{history.dayCount}일</strong>
+                          </div>
+                          <div>
+                            <span>총 식수</span>
+                            <strong>{history.mealCount}식</strong>
+                          </div>
+                          <div>
+                            <span>구매/미구매</span>
+                            <strong>
+                              {history.ticketCount}/{history.unpaidCount}
+                            </strong>
+                          </div>
+                        </div>
+                        <div className="ticket-buyer-detail-caption">잔여 식권 / 추가 구매 / 취소</div>
+                        <div className="ticket-buyer-balance" aria-label={`${officer.name} 잔여 식권`}>
+                          {mealOrder.map((meal) => {
+                            const count = balance[meal]
+                            const use = findTodayUse(officer.id, meal)
+                            const shouldCancel = count > 0 && use?.status !== 'unpaid'
+                            return (
+                              <button
+                                className={shouldCancel ? 'cancel' : 'purchase'}
+                                key={meal}
+                                onClick={() =>
+                                  shouldCancel
+                                    ? void app.cancelOfficerTicket(officer.id, meal, 1, app.date)
+                                    : purchaseMealTicket(officer.name, meal)
+                                }
+                                title={shouldCancel ? `${mealLabels[meal]} 식권 1장 취소` : `${mealLabels[meal]} 식권 1장 구매`}
+                                type="button"
+                              >
+                                <span>
+                                  {mealLabels[meal]} {shouldCancel ? count : '구매'}
+                                </span>
+                                {shouldCancel ? <Trash2 size={14} /> : <Ticket size={14} />}
                               </button>
-                            </div>
-                          ))}
+                            )
+                          })}
                         </div>
-                      ) : (
-                        <div className="empty-inline">예정된 식권 구매가 없습니다.</div>
-                      )}
-                    </div>
-                  )}
-                </article>
-              )
-            })}
+                        <div className="ticket-buyer-detail-caption">예정 식권 구매</div>
+                        {officerScheduledPurchases.length > 0 ? (
+                          <div className="ticket-schedule-list">
+                            {officerScheduledPurchases.map((purchase) => (
+                              <div key={purchase.id}>
+                                <span>
+                                  {purchase.targetDate} · {mealLabels[purchase.meal]} · {purchase.quantity}장
+                                </span>
+                                <button onClick={() => void app.cancelOfficerTicket(officer.id, purchase.meal, 1, purchase.targetDate)} type="button">
+                                  취소
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="empty-inline">예정된 식권 구매가 없습니다.</div>
+                        )}
+                      </div>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
           </div>
         ) : (
           <div className="empty-inline">식권구매자를 먼저 등록하세요.</div>
