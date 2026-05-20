@@ -162,21 +162,20 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       <strong>{officer.name}</strong>
                       <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
                     </div>
-                    <div className="ticket-buyer-inline-meals" aria-label={`${officer.name} 오늘 식사 체크`}>
-                      {mealOrder.map((meal) => {
-                        const use = findTodayUse(officer.id, meal)
-                        return (
-                          <button
-                            className={use ? `active ${use.status}` : ''}
-                            key={meal}
-                            onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
-                            type="button"
-                          >
-                            <span>{use ? '완료' : '등록'}</span>
-                          </button>
-                        )
-                      })}
-                    </div>
+                    {mealOrder.map((meal) => {
+                      const use = findTodayUse(officer.id, meal)
+                      return (
+                        <button
+                          aria-label={`${officer.name} ${mealLabels[meal]} ${use ? '해제' : '등록'}`}
+                          className={`ticket-buyer-meal-cell ${use ? `active ${use.status}` : ''}`}
+                          key={meal}
+                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                          type="button"
+                        >
+                          <span>{use ? '완료' : '등록'}</span>
+                        </button>
+                      )
+                    })}
                     <div className="ticket-buyer-actions">
                       <button
                         aria-expanded={isExpanded}

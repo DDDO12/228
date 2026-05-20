@@ -2118,11 +2118,7 @@ textarea {
   gap: 8px;
 }
 
-.ticket-buyer-inline-meals {
-  grid-template-columns: repeat(3, 84px);
-}
-
-.ticket-buyer-inline-meals button,
+.ticket-buyer-meal-cell,
 .ticket-buyer-balance button {
   display: grid;
   place-items: center;
@@ -2137,7 +2133,7 @@ textarea {
   font-weight: 800;
 }
 
-.ticket-buyer-inline-meals span,
+.ticket-buyer-meal-cell span,
 .ticket-buyer-balance span {
   min-width: 0;
   overflow: hidden;
@@ -2146,14 +2142,14 @@ textarea {
   white-space: nowrap;
 }
 
-.ticket-buyer-inline-meals button.active.ticket {
+.ticket-buyer-meal-cell.active.ticket {
   border-color: var(--color-primary-border);
   background: var(--color-primary-soft);
   color: var(--color-primary);
   box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.08);
 }
 
-.ticket-buyer-inline-meals button.active.unpaid {
+.ticket-buyer-meal-cell.active.unpaid {
   border-color: var(--color-danger-border);
   background: var(--color-danger-soft);
   color: var(--color-danger);
@@ -3421,10 +3417,6 @@ textarea {
 
   .ticket-buyer-row-copy {
     padding: 0;
-  }
-
-  .ticket-buyer-inline-meals {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .ticket-buyer-actions {
