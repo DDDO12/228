@@ -19,6 +19,7 @@ import {
 import type { DayMemo, ShoppingMemoItem } from '../domain/memo'
 import {
   createOfficerBalanceMap,
+  normalizeOfficerTicketPurchase,
   type Officer,
   type OfficerMealUse,
   type OfficerTicketPurchase,
@@ -231,7 +232,11 @@ export function useAppState() {
       setMemos(storedMemos)
       setOfficers(storedOfficers)
       setOfficerMealUses(storedOfficerUses)
-      setOfficerTicketPurchases(storedOfficerPurchases)
+      setOfficerTicketPurchases(
+        storedOfficerPurchases.map((purchase) =>
+          normalizeOfficerTicketPurchase(purchase as OfficerTicketPurchase & { date?: string }),
+        ),
+      )
       if (storedDivisions.length === 0 || storedDivisions.some((division) => division.name.endsWith('분과'))) {
         await localStore.saveDivisions(initialDivisions)
       }
@@ -1099,10 +1104,11 @@ export function useAppState() {
   )
 
   const addOfficerTicketPurchase = useCallback(
-    async (name: string, purchaseMeals: MealType[] | MealType, quantity: number) => {
+    async (name: string, purchaseMeals: MealType[] | MealType, quantity: number, targetDate = date) => {
       const trimmed = name.trim()
       const safeQuantity = Math.max(0, Math.floor(quantity))
-      if (!trimmed || safeQuantity <= 0) return false
+      const normalizedTargetDate = targetDate.trim()
+      if (!trimmed || safeQuantity <= 0 || !normalizedTargetDate) return false
       const selectedMeals = Array.from(new Set(Array.isArray(purchaseMeals) ? purchaseMeals : [purchaseMeals]))
       if (selectedMeals.length === 0) return false
       const now = nowIso()
@@ -1111,7 +1117,8 @@ export function useAppState() {
       const nextOfficers = existingOfficer ? officers : [...officers, officer]
       const purchases = selectedMeals.map<OfficerTicketPurchase>((purchaseMeal) => ({
         id: createId('officer-purchase'),
-        date,
+        purchaseDate: date,
+        targetDate: normalizedTargetDate,
         meal: purchaseMeal,
         officerId: officer.id,
         officerName: officer.name,
@@ -1125,7 +1132,12 @@ export function useAppState() {
         .sort((a, b) => `${a.date}-${a.createdAt}`.localeCompare(`${b.date}-${b.createdAt}`))
         .map((use) => {
           const remaining = remainingByMeal.get(use.meal) ?? 0
-          if (remaining <= 0 || use.officerId !== officer.id || use.status !== 'unpaid') return use
+          if (
+            remaining <= 0 ||
+            use.officerId !== officer.id ||
+            use.status !== 'unpaid' ||
+            use.date !== normalizedTargetDate
+          ) return use
           remainingByMeal.set(use.meal, remaining - 1)
           return { ...use, status: 'ticket' as const, updatedAt: now }
         })
@@ -1146,11 +1158,12 @@ export function useAppState() {
   )
 
   const cancelOfficerTicket = useCallback(
-    async (officerId: string, cancelMeal: MealType, quantity = 1) => {
+    async (officerId: string, cancelMeal: MealType, quantity = 1, targetDate = date) => {
       const officer = officers.find((item) => item.id === officerId)
       if (!officer) return false
       const safeQuantity = Math.max(0, Math.floor(quantity))
-      const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses).get(officerId)
+      const normalizedTargetDate = targetDate.trim()
+      const balance = createOfficerBalanceMap(officerTicketPurchases, officerMealUses, normalizedTargetDate).get(officerId)
       const cancellable = Math.min(safeQuantity, Math.max(0, balance?.[cancelMeal] ?? 0))
       if (cancellable <= 0) {
         setToast('취소할 잔여 식권이 없습니다.')
@@ -1161,7 +1174,8 @@ export function useAppState() {
         ...officerTicketPurchases,
         {
           id: createId('officer-cancel'),
-          date,
+          purchaseDate: date,
+          targetDate: normalizedTargetDate,
           meal: cancelMeal,
           officerId,
           officerName: officer.name,
@@ -1193,7 +1207,9 @@ export function useAppState() {
     const nextMemos = backup.memos ?? []
     const nextOfficers = backup.officers ?? []
     const nextOfficerUses = backup.officerMealUses ?? []
-    const nextOfficerPurchases = backup.officerTicketPurchases ?? []
+    const nextOfficerPurchases = (backup.officerTicketPurchases ?? []).map((purchase) =>
+      normalizeOfficerTicketPurchase(purchase as OfficerTicketPurchase & { date?: string }),
+    )
     await localStore.importBackup({
       ...backup,
       divisions: nextDivisions,

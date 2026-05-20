@@ -1994,6 +1994,17 @@ textarea {
   opacity: 0.72;
 }
 
+.officer-future-purchase-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 168px 260px 84px auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.officer-meal-segment {
+  min-height: 44px;
+}
+
 .ticket-buyer-board {
   display: grid;
   grid-template-columns: 1fr;
@@ -2165,6 +2176,37 @@ textarea {
 .ticket-buyer-detail-caption {
   color: var(--color-muted);
   font-size: 12px;
+  font-weight: 800;
+}
+
+.ticket-schedule-list {
+  display: grid;
+  gap: 8px;
+}
+
+.ticket-schedule-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(31, 41, 51, 0.08);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+}
+
+.ticket-schedule-list span {
+  color: var(--color-muted-strong);
+  font-size: 13px;
+}
+
+.ticket-schedule-list button {
+  min-height: 32px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
   font-weight: 800;
 }
 
@@ -3385,6 +3427,10 @@ textarea {
   }
 
   .memo-shopping-form {
+    grid-template-columns: 1fr;
+  }
+
+  .officer-future-purchase-form {
     grid-template-columns: 1fr;
   }
 

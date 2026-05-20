@@ -23,7 +23,8 @@ export interface OfficerMealUse {
 
 export interface OfficerTicketPurchase {
   id: string
-  date: string
+  purchaseDate: string
+  targetDate: string
   meal: MealType
   officerId: string
   officerName: string
@@ -56,7 +57,22 @@ export function emptyOfficerTicketBalance(): OfficerTicketBalance {
   return { breakfast: 0, lunch: 0, dinner: 0 }
 }
 
-export function createOfficerBalanceMap(purchases: OfficerTicketPurchase[], uses: OfficerMealUse[]) {
+export function normalizeOfficerTicketPurchase(
+  purchase: OfficerTicketPurchase & {
+    date?: string
+    purchaseDate?: string
+    targetDate?: string
+  },
+): OfficerTicketPurchase {
+  const fallbackDate = purchase.targetDate ?? purchase.purchaseDate ?? purchase.date ?? ''
+  return {
+    ...purchase,
+    purchaseDate: purchase.purchaseDate ?? purchase.date ?? fallbackDate,
+    targetDate: purchase.targetDate ?? purchase.date ?? fallbackDate,
+  }
+}
+
+export function createOfficerBalanceMap(purchases: OfficerTicketPurchase[], uses: OfficerMealUse[], targetDate?: string) {
   const balances = new Map<string, OfficerTicketBalance>()
 
   function ensure(officerId: string) {
@@ -67,12 +83,14 @@ export function createOfficerBalanceMap(purchases: OfficerTicketPurchase[], uses
     return next
   }
 
-  purchases.forEach((purchase) => {
+  purchases
+    .filter((purchase) => !targetDate || purchase.targetDate === targetDate)
+    .forEach((purchase) => {
     ensure(purchase.officerId)[purchase.meal] += purchase.quantity
-  })
+    })
 
   uses.forEach((use) => {
-    if (use.status === 'ticket') ensure(use.officerId)[use.meal] -= 1
+    if (use.status === 'ticket' && (!targetDate || use.date === targetDate)) ensure(use.officerId)[use.meal] -= 1
   })
 
   return balances

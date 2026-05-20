@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, ChevronRight, Pencil, Plus, Search, Ticket, Trash2, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
 import { ConfirmDialog } from '../components/ConfirmDialog'
-import { createOfficerBalanceMap, createOfficerUseHistoryMap, type Officer, type OfficerUseHistory } from '../domain/officer'
+import { createOfficerBalanceMap, type Officer, createOfficerUseHistoryMap, type OfficerUseHistory } from '../domain/officer'
 import { mealLabels, mealOrder, type MealType } from '../domain/meal'
 import { matchesSearch } from '../utils/search'
 
@@ -14,6 +14,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   const [buyerName, setBuyerName] = useState('')
   const [query, setQuery] = useState('')
   const [addBuyerOpen, setAddBuyerOpen] = useState(false)
+  const [purchaseName, setPurchaseName] = useState('')
+  const [purchaseMeal, setPurchaseMeal] = useState<MealType>('lunch')
+  const [purchaseTargetDate, setPurchaseTargetDate] = useState(app.date)
+  const [purchaseQuantity, setPurchaseQuantity] = useState(1)
   const [editingBuyer, setEditingBuyer] = useState<{ id: string; name: string }>()
   const [editName, setEditName] = useState('')
   const [confirmDeleteBuyer, setConfirmDeleteBuyer] = useState<Officer>()
@@ -23,8 +27,8 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
   })
   const expandedBuyerIds = expandedBuyerState.scope === expandScope ? expandedBuyerState.ids : []
   const balances = useMemo(
-    () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses),
-    [app.officerMealUses, app.officerTicketPurchases],
+    () => createOfficerBalanceMap(app.officerTicketPurchases, app.officerMealUses, app.date),
+    [app.date, app.officerMealUses, app.officerTicketPurchases],
   )
   const histories = useMemo(() => createOfficerUseHistoryMap(app.officerMealUses), [app.officerMealUses])
   const currentUses = app.officerMealUses
@@ -40,6 +44,9 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     .filter((purchase) => purchase.quantity < 0 && matchesSearch(query, [purchase.officerName]))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 12)
+  const scheduledPurchases = app.officerTicketPurchases
+    .filter((purchase) => purchase.quantity > 0 && purchase.targetDate >= app.date && matchesSearch(query, [purchase.officerName]))
+    .sort((a, b) => a.targetDate.localeCompare(b.targetDate) || koreanNameCollator.compare(a.officerName, b.officerName))
 
   async function handleBuyerSubmit(event: React.FormEvent) {
     event.preventDefault()
@@ -47,6 +54,17 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     if (ok) {
       setBuyerName('')
       setAddBuyerOpen(false)
+    }
+  }
+
+  async function handlePurchaseSubmit(event: React.FormEvent) {
+    event.preventDefault()
+    const ok = await app.addOfficerTicketPurchase(purchaseName, [purchaseMeal], purchaseQuantity, purchaseTargetDate)
+    if (ok) {
+      setPurchaseName('')
+      setPurchaseMeal('lunch')
+      setPurchaseQuantity(1)
+      setPurchaseTargetDate(app.date)
     }
   }
 
@@ -134,6 +152,38 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
 
       <section className="panel">
         <div className="panel-title-row">
+          <h2>식권 구매 등록</h2>
+          <small>구매일 {app.date}</small>
+        </div>
+        <form className="officer-future-purchase-form" onSubmit={handlePurchaseSubmit}>
+          <input onChange={(event) => setPurchaseName(event.target.value)} placeholder="구매자 이름" value={purchaseName} />
+          <input onChange={(event) => setPurchaseTargetDate(event.target.value)} type="date" value={purchaseTargetDate} />
+          <div className="segmented officer-meal-segment" role="tablist" aria-label="구매 식사 선택">
+            {mealOrder.map((mealOption) => (
+              <button
+                className={purchaseMeal === mealOption ? 'active' : ''}
+                key={mealOption}
+                onClick={() => setPurchaseMeal(mealOption)}
+                type="button"
+              >
+                {mealLabels[mealOption]}
+              </button>
+            ))}
+          </div>
+          <input
+            min={1}
+            onChange={(event) => setPurchaseQuantity(Number(event.target.value) || 1)}
+            type="number"
+            value={purchaseQuantity}
+          />
+          <button className="primary-button" disabled={!purchaseName.trim() || !purchaseTargetDate} type="submit">
+            구매 등록
+          </button>
+        </form>
+      </section>
+
+      <section className="panel">
+        <div className="panel-title-row">
           <h2>오늘 식사 체크</h2>
           <div className="ticket-buyer-list-tools">
             <small>{visibleBuyers.length}명</small>
@@ -155,6 +205,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
               const history = getHistory(officer.id)
               const isExpanded = expandedBuyerIds.includes(officer.id)
+              const officerScheduledPurchases = scheduledPurchases.filter((purchase) => purchase.officerId === officer.id)
               return (
                 <article className={`ticket-buyer-row ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
                   <header className="ticket-buyer-row-header">
@@ -223,7 +274,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                               key={meal}
                               onClick={() =>
                                 shouldCancel
-                                  ? void app.cancelOfficerTicket(officer.id, meal, 1)
+                                  ? void app.cancelOfficerTicket(officer.id, meal, 1, app.date)
                                   : purchaseMealTicket(officer.name, meal)
                               }
                               title={shouldCancel ? `${mealLabels[meal]} 식권 1장 취소` : `${mealLabels[meal]} 식권 1장 구매`}
@@ -237,6 +288,23 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                           )
                         })}
                       </div>
+                      <div className="ticket-buyer-detail-caption">예정 식권 구매</div>
+                      {officerScheduledPurchases.length > 0 ? (
+                        <div className="ticket-schedule-list">
+                          {officerScheduledPurchases.map((purchase) => (
+                            <div key={purchase.id}>
+                              <span>
+                                {purchase.targetDate} · {mealLabels[purchase.meal]} · {purchase.quantity}장
+                              </span>
+                              <button onClick={() => void app.cancelOfficerTicket(officer.id, purchase.meal, 1, purchase.targetDate)} type="button">
+                                취소
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="empty-inline">예정된 식권 구매가 없습니다.</div>
+                      )}
                     </div>
                   )}
                 </article>
@@ -258,7 +326,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
             {cancellationRecords.map((record) => (
               <div key={record.id}>
                 <span>
-                  {record.date} · {record.officerName} · {mealLabels[record.meal]}
+                  {record.purchaseDate} · {record.targetDate} · {record.officerName} · {mealLabels[record.meal]}
                 </span>
                 <strong>{Math.abs(record.quantity)}장 취소</strong>
               </div>
