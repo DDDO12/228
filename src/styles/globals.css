@@ -1067,6 +1067,9 @@ textarea {
   gap: 12px;
   color: var(--color-text);
   font-size: 14px;
+  border-radius: 8px;
+  padding: 6px 8px;
+  transition: background-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .toggle-line label {
@@ -1078,6 +1081,12 @@ textarea {
 .toggle-line input {
   width: 18px;
   min-height: 18px;
+}
+
+.field-active-block {
+  background: rgba(15, 118, 110, 0.05);
+  box-shadow: 0 0 0 1px rgba(15, 118, 110, 0.2), 0 0 0 4px rgba(15, 118, 110, 0.08);
+  transform: translateY(-1px);
 }
 
 .bulk-editor {

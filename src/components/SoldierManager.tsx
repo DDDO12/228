@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
-import { Edit3, Layers, Plus, Save, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { useEffect, useMemo, useState, type KeyboardEvent } from 'react'
+import { ChevronDown, Edit3, Layers, Plus, Save, Search, Trash2, UserPlus, Users, X } from 'lucide-react'
+import { ConfirmDialog } from './ConfirmDialog'
 import type { Division, Section, Soldier } from '../domain/soldier'
 import { formatTime } from '../utils/date'
 import { matchesSearch } from '../utils/search'
@@ -21,6 +22,9 @@ interface SoldierManagerProps {
 }
 
 type ManagerModal = 'add' | 'division' | 'bulk'
+type SoldierFieldKey = 'addName' | 'addDivision' | 'addSection' | 'addNote' | 'editName' | 'editDivision' | 'editSection' | 'editNote' | 'editActive'
+const addSoldierFieldOrder: SoldierFieldKey[] = ['addName', 'addDivision', 'addSection', 'addNote']
+const editSoldierFieldOrder: SoldierFieldKey[] = ['editName', 'editDivision', 'editSection', 'editNote', 'editActive']
 
 const sectionCollator = new Intl.Collator('ko-KR', { numeric: true, sensitivity: 'base' })
 
@@ -57,6 +61,11 @@ export function SoldierManager({
   const [bulkDivisionId, setBulkDivisionId] = useState('')
   const [bulkSection, setBulkSection] = useState('')
   const [editingSoldier, setEditingSoldier] = useState<Soldier>()
+  const [inlineSectionSoldierId, setInlineSectionSoldierId] = useState<string>()
+  const [confirmDeleteSoldier, setConfirmDeleteSoldier] = useState<Soldier>()
+  const [confirmDeleteDivision, setConfirmDeleteDivision] = useState<Division>()
+  const [confirmDeleteSection, setConfirmDeleteSection] = useState<{ id: string; name: string; divisionName: string }>()
+  const [activeField, setActiveField] = useState<SoldierFieldKey>('addName')
 
   const divisionMap = useMemo(() => new Map(divisions.map((division) => [division.id, division.name])), [divisions])
   const sectionNames = useMemo(
@@ -135,10 +144,15 @@ export function SoldierManager({
     setModal(undefined)
     setEditingDivisionId(undefined)
     setEditingSectionId(undefined)
+    setActiveField('addName')
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    await submitAddSoldier()
+  }
+
+  async function submitAddSoldier() {
     if (!name.trim()) return
     const ok = await onAdd({ name, divisionId: divisionId || undefined, section: section || undefined, note })
     if (ok) {
@@ -209,6 +223,30 @@ export function SoldierManager({
     void action()
   }
 
+  function focusSoldierField(field?: SoldierFieldKey) {
+    if (!field) return
+    setActiveField(field)
+    const target = document.querySelector<HTMLElement>(`[data-field-key="${field}"]`)
+    if (target instanceof HTMLElement) requestAnimationFrame(() => target.focus())
+  }
+
+  function handleSequentialEnter(
+    event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>,
+    order: SoldierFieldKey[],
+    currentField: SoldierFieldKey,
+    onComplete: () => void,
+  ) {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+    event.preventDefault()
+    const currentIndex = order.indexOf(currentField)
+    const nextField = order[currentIndex + 1]
+    if (!nextField) {
+      onComplete()
+      return
+    }
+    focusSoldierField(nextField)
+  }
+
   function toggleSelection(id: string) {
     setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]))
   }
@@ -261,6 +299,22 @@ export function SoldierManager({
     saveSoldierEdit()
   }
 
+  function assignSectionInline(soldierId: string, sectionName: string | undefined) {
+    onUpdate(soldierId, { section: sectionName || undefined })
+    setInlineSectionSoldierId(undefined)
+  }
+
+  useEffect(() => {
+    if (!inlineSectionSoldierId) return
+    function handleOutside(event: MouseEvent) {
+      if (!(event.target as Element).closest('.soldier-section-row')) {
+        setInlineSectionSoldierId(undefined)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [inlineSectionSoldierId])
+
   return (
     <div className="stack">
       <section className="panel manager-toolbar">
@@ -269,7 +323,7 @@ export function SoldierManager({
           <span>선택 {selectedIds.length}명 · 표시 {filtered.length}명</span>
         </div>
         <div className="manager-action-grid">
-          <button onClick={() => setModal('add')} type="button">
+          <button onClick={() => { setModal('add'); setActiveField('addName') }} type="button">
             <UserPlus size={18} /> 인원 추가
           </button>
           <button onClick={() => setModal('bulk')} type="button">
@@ -360,7 +414,7 @@ export function SoldierManager({
                   <span>
                     <strong>{soldier.name}</strong>
                     <small>
-                      {divisionMap.get(currentDivision) ?? '포대 미지정'} · {soldier.section || '분과 미지정'} · 수정{' '}
+                      {divisionMap.get(currentDivision) ?? '포대 미지정'} · 수정{' '}
                       {formatTime(soldier.updatedAt)}
                       {duplicateNames.has(duplicateKey) ? ' · 중복 이름' : ''}
                     </small>
@@ -375,21 +429,52 @@ export function SoldierManager({
                     />
                     <span />
                   </label>
-                  <button aria-label="인원 수정" onClick={() => setEditingSoldier(soldier)} type="button">
+                  <button aria-label="인원 수정" onClick={() => { setEditingSoldier(soldier); setActiveField('editName') }} type="button">
                     <Edit3 size={17} />
                   </button>
                   <button
                     aria-label="인원 삭제"
-                    onClick={() => {
-                      if (window.confirm(`${soldier.name} 인원을 삭제할까요?`)) onDelete(soldier.id)
-                    }}
+                    onClick={() => setConfirmDeleteSoldier(soldier)}
                     type="button"
                   >
                     <Trash2 size={17} />
                   </button>
                 </div>
               </div>
-              {soldier.note && <p>{soldier.note}</p>}
+              <div className="soldier-section-row">
+                <button
+                  className={`section-inline-chip${!soldier.section ? ' unassigned' : ''}`}
+                  onClick={() => setInlineSectionSoldierId((id) => (id === soldier.id ? undefined : soldier.id))}
+                  type="button"
+                >
+                  {soldier.section || '분과 미지정'}
+                  <ChevronDown size={11} />
+                </button>
+                {inlineSectionSoldierId === soldier.id && (
+                  <div className="section-quick-pills">
+                    {soldier.section && (
+                      <button className="section-pill" onClick={() => assignSectionInline(soldier.id, undefined)} type="button">
+                        미지정
+                      </button>
+                    )}
+                    {sectionNamesForDivision(soldier.divisionId).length === 0 ? (
+                      <span className="section-pill-empty">포대 관리에서 분과를 추가하세요</span>
+                    ) : (
+                      sectionNamesForDivision(soldier.divisionId).map((sectionName) => (
+                        <button
+                          className={`section-pill${soldier.section === sectionName ? ' active' : ''}`}
+                          key={sectionName}
+                          onClick={() => assignSectionInline(soldier.id, sectionName)}
+                          type="button"
+                        >
+                          {sectionName}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+              {soldier.note && <p className="soldier-note">{soldier.note}</p>}
             </article>
           )
         })}
@@ -414,9 +499,26 @@ export function SoldierManager({
 
             {modal === 'add' && (
               <form className="manager-form" onSubmit={handleSubmit}>
-                <input onChange={(event) => setName(event.target.value)} placeholder="이름" value={name} />
+                <div className={`field-focus-shell ${activeField === 'addName' ? 'active' : ''}`}>
+                  <input
+                    autoFocus
+                    data-field-key="addName"
+                    onChange={(event) => setName(event.target.value)}
+                    onFocus={() => setActiveField('addName')}
+                    onKeyDown={(event) => handleSequentialEnter(event, addSoldierFieldOrder, 'addName', () => focusSoldierField('addDivision'))}
+                    placeholder="이름"
+                    value={name}
+                  />
+                </div>
                 <div className="field-line">
-                  <select onChange={(event) => changeAddDivision(event.target.value)} value={divisionId}>
+                  <select
+                    className={activeField === 'addDivision' ? 'field-focus-active' : ''}
+                    data-field-key="addDivision"
+                    onChange={(event) => changeAddDivision(event.target.value)}
+                    onFocus={() => setActiveField('addDivision')}
+                    onKeyDown={(event) => handleSequentialEnter(event, addSoldierFieldOrder, 'addDivision', () => focusSoldierField('addSection'))}
+                    value={divisionId}
+                  >
                     <option value="">포대 미지정</option>
                     {divisions.map((division) => (
                       <option key={division.id} value={division.id}>
@@ -424,7 +526,14 @@ export function SoldierManager({
                       </option>
                     ))}
                   </select>
-                  <select onChange={(event) => setSection(event.target.value)} value={section}>
+                  <select
+                    className={activeField === 'addSection' ? 'field-focus-active' : ''}
+                    data-field-key="addSection"
+                    onChange={(event) => setSection(event.target.value)}
+                    onFocus={() => setActiveField('addSection')}
+                    onKeyDown={(event) => handleSequentialEnter(event, addSoldierFieldOrder, 'addSection', () => focusSoldierField('addNote'))}
+                    value={section}
+                  >
                     <option value="">분과 미지정</option>
                     {sectionNamesForDivision(divisionId || undefined).map((item) => (
                       <option key={item} value={item}>
@@ -433,7 +542,16 @@ export function SoldierManager({
                     ))}
                   </select>
                 </div>
-                <input onChange={(event) => setNote(event.target.value)} placeholder="메모 선택 입력" value={note} />
+                <div className={`field-focus-shell ${activeField === 'addNote' ? 'active' : ''}`}>
+                  <input
+                    data-field-key="addNote"
+                    onChange={(event) => setNote(event.target.value)}
+                    onFocus={() => setActiveField('addNote')}
+                    onKeyDown={(event) => handleSequentialEnter(event, addSoldierFieldOrder, 'addNote', () => void submitAddSoldier())}
+                    placeholder="메모 선택 입력"
+                    value={note}
+                  />
+                </div>
                 <button className="primary-button" type="submit">
                   <Plus size={18} /> 추가
                 </button>
@@ -531,9 +649,7 @@ export function SoldierManager({
                                 </button>
                                 <button
                                   aria-label="포대 삭제"
-                                  onClick={() => {
-                                    if (window.confirm(`${division.name} 포대를 삭제할까요?`)) onDeleteDivision(division.id)
-                                  }}
+                                  onClick={() => setConfirmDeleteDivision(division)}
                                   type="button"
                                 >
                                   <Trash2 size={17} />
@@ -600,11 +716,7 @@ export function SoldierManager({
                                       </button>
                                       <button
                                         aria-label="분과 삭제"
-                                        onClick={() => {
-                                          if (window.confirm(`${division.name} ${item.name} 분과를 삭제할까요? 해당 인원은 분과 미지정으로 변경됩니다.`)) {
-                                            onDeleteSection(item.id)
-                                          }
-                                        }}
+                                        onClick={() => setConfirmDeleteSection({ id: item.id, name: item.name, divisionName: division.name })}
                                         type="button"
                                       >
                                         <Trash2 size={17} />
@@ -626,6 +738,42 @@ export function SoldierManager({
         </div>
       )}
 
+      {confirmDeleteSoldier && (
+        <ConfirmDialog
+          body="이 인원의 모든 취식 기록도 함께 삭제됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteSoldier(undefined)}
+          onConfirm={() => {
+            onDelete(confirmDeleteSoldier.id)
+            setConfirmDeleteSoldier(undefined)
+          }}
+          title={`${confirmDeleteSoldier.name} 인원을 삭제할까요?`}
+        />
+      )}
+      {confirmDeleteDivision && (
+        <ConfirmDialog
+          body="포대 소속 인원은 포대 미지정으로 변경됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteDivision(undefined)}
+          onConfirm={() => {
+            onDeleteDivision(confirmDeleteDivision.id)
+            setConfirmDeleteDivision(undefined)
+          }}
+          title={`${confirmDeleteDivision.name} 포대를 삭제할까요?`}
+        />
+      )}
+      {confirmDeleteSection && (
+        <ConfirmDialog
+          body="해당 인원은 분과 미지정으로 변경됩니다."
+          confirmLabel="삭제"
+          onCancel={() => setConfirmDeleteSection(undefined)}
+          onConfirm={() => {
+            onDeleteSection(confirmDeleteSection.id)
+            setConfirmDeleteSection(undefined)
+          }}
+          title={`${confirmDeleteSection.divisionName} ${confirmDeleteSection.name} 분과를 삭제할까요?`}
+        />
+      )}
       {editingSoldier && (
         <div className="modal-backdrop" onClick={() => setEditingSoldier(undefined)}>
           <form className="modal soldier-edit-modal" onClick={(event) => event.stopPropagation()} onSubmit={handleSoldierEditSubmit}>
@@ -638,9 +786,23 @@ export function SoldierManager({
                 <X size={20} />
               </button>
             </header>
-            <input onChange={(event) => updateEditingSoldier({ name: event.target.value })} placeholder="이름" value={editingSoldier.name} />
+            <div className={`field-focus-shell ${activeField === 'editName' ? 'active' : ''}`}>
+              <input
+                autoFocus
+                data-field-key="editName"
+                onChange={(event) => updateEditingSoldier({ name: event.target.value })}
+                onFocus={() => setActiveField('editName')}
+                onKeyDown={(event) => handleSequentialEnter(event, editSoldierFieldOrder, 'editName', () => focusSoldierField('editDivision'))}
+                placeholder="이름"
+                value={editingSoldier.name}
+              />
+            </div>
             <select
+              className={activeField === 'editDivision' ? 'field-focus-active' : ''}
+              data-field-key="editDivision"
               onChange={(event) => changeEditingSoldierDivision(event.target.value)}
+              onFocus={() => setActiveField('editDivision')}
+              onKeyDown={(event) => handleSequentialEnter(event, editSoldierFieldOrder, 'editDivision', () => focusSoldierField('editSection'))}
               value={editingSoldier.divisionId ?? ''}
             >
               <option value="">포대 미지정</option>
@@ -651,7 +813,11 @@ export function SoldierManager({
               ))}
             </select>
             <select
+              className={activeField === 'editSection' ? 'field-focus-active' : ''}
+              data-field-key="editSection"
               onChange={(event) => updateEditingSoldier({ section: event.target.value || undefined })}
+              onFocus={() => setActiveField('editSection')}
+              onKeyDown={(event) => handleSequentialEnter(event, editSoldierFieldOrder, 'editSection', () => focusSoldierField('editNote'))}
               value={editingSoldier.section ?? ''}
             >
               <option value="">분과 미지정</option>
@@ -661,15 +827,23 @@ export function SoldierManager({
                 </option>
               ))}
             </select>
-            <input
-              onChange={(event) => updateEditingSoldier({ note: event.target.value })}
-              placeholder="메모"
-              value={editingSoldier.note ?? ''}
-            />
-            <label className="toggle-line">
+            <div className={`field-focus-shell ${activeField === 'editNote' ? 'active' : ''}`}>
+              <input
+                data-field-key="editNote"
+                onChange={(event) => updateEditingSoldier({ note: event.target.value })}
+                onFocus={() => setActiveField('editNote')}
+                onKeyDown={(event) => handleSequentialEnter(event, editSoldierFieldOrder, 'editNote', () => focusSoldierField('editActive'))}
+                placeholder="메모"
+                value={editingSoldier.note ?? ''}
+              />
+            </div>
+            <label className={`toggle-line ${activeField === 'editActive' ? 'field-active-block' : ''}`}>
               <input
                 checked={editingSoldier.active}
+                data-field-key="editActive"
                 onChange={(event) => updateEditingSoldier({ active: event.target.checked })}
+                onFocus={() => setActiveField('editActive')}
+                onKeyDown={(event) => handleSequentialEnter(event, editSoldierFieldOrder, 'editActive', saveSoldierEdit)}
                 type="checkbox"
               />
               활성 인원
