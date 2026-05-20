@@ -1999,22 +1999,22 @@ textarea {
   grid-template-columns: 1fr;
   align-items: start;
   gap: 0;
-  border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border: 1px solid rgba(31, 41, 51, 0.1);
+  border-radius: 12px;
   overflow: hidden;
   background: var(--color-surface);
-  box-shadow: var(--shadow-panel);
+  box-shadow: none;
 }
 
 .ticket-buyer-board-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, 78px) 108px;
-  gap: 10px;
-  padding: 12px 16px 10px;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, 84px) 116px;
+  gap: 8px;
+  padding: 10px 18px;
   color: var(--color-muted-strong);
   font-size: 12px;
   font-weight: 800;
-  background: #f8fafb;
+  background: #f5f7f9;
   border-bottom: 1px solid rgba(31, 41, 51, 0.08);
 }
 
@@ -2046,7 +2046,7 @@ textarea {
 .ticket-buyer-row {
   display: grid;
   gap: 0;
-  padding: 0 16px;
+  padding: 0 18px;
   background: var(--color-surface);
   box-shadow: none;
   border-bottom: 1px solid rgba(31, 41, 51, 0.08);
@@ -2058,23 +2058,24 @@ textarea {
 
 .ticket-buyer-row-header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(3, 78px) 108px;
+  grid-template-columns: minmax(180px, 1fr) repeat(3, 84px) 116px;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  min-height: 76px;
+  min-height: 64px;
 }
 
 .ticket-buyer-row-copy {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
+  padding: 10px 0;
 }
 
 .ticket-buyer-row-copy strong {
   min-width: 0;
   overflow: hidden;
-  font-size: 18px;
+  font-size: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2083,7 +2084,7 @@ textarea {
   min-width: 0;
   overflow: hidden;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2099,8 +2100,8 @@ textarea {
 .ticket-buyer-actions button {
   display: grid;
   place-items: center;
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 6px;
   background: var(--color-control);
@@ -2118,7 +2119,7 @@ textarea {
 }
 
 .ticket-buyer-inline-meals {
-  grid-template-columns: repeat(3, 78px);
+  grid-template-columns: repeat(3, 84px);
 }
 
 .ticket-buyer-inline-meals button,
@@ -2127,11 +2128,11 @@ textarea {
   place-items: center;
   gap: 0;
   min-width: 0;
-  min-height: 42px;
+  min-height: 38px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
-  padding: 0 4px;
-  background: #f7f9fa;
+  border-radius: 8px;
+  padding: 0 2px;
+  background: #ffffff;
   color: var(--color-muted);
   font-weight: 800;
 }
@@ -2140,7 +2141,7 @@ textarea {
 .ticket-buyer-balance span {
   min-width: 0;
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2160,8 +2161,9 @@ textarea {
 
 .ticket-buyer-detail {
   grid-column: 1 / -1;
-  padding: 10px 0 14px;
+  padding: 12px 0 14px;
   border-top: 1px solid rgba(31, 41, 51, 0.08);
+  background: #fbfcfd;
 }
 
 .ticket-buyer-detail-caption {
@@ -3415,6 +3417,10 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
     min-height: auto;
+  }
+
+  .ticket-buyer-row-copy {
+    padding: 0;
   }
 
   .ticket-buyer-inline-meals {
