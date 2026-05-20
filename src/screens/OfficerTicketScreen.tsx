@@ -108,18 +108,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
     })
   }
 
-  function getBuyerSummary(officerId: string, balance: Record<MealType, number>) {
-    const states = mealOrder
-      .map((meal) => {
-        const use = findTodayUse(officerId, meal)
-        if (use) return `${mealLabels[meal]} ${use.status === 'ticket' ? '식권' : '미구매'}`
-        if (balance[meal] > 0) return `${mealLabels[meal]} ${balance[meal]}`
-        return ''
-      })
-      .filter(Boolean)
-    return states.length > 0 ? states.join(' · ') : '미등록'
-  }
-
   function getHistory(officerId: string): OfficerUseHistory {
     return histories.get(officerId) ?? { dayCount: 0, mealCount: 0, ticketCount: 0, unpaidCount: 0 }
   }
@@ -167,13 +155,11 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
               const history = getHistory(officer.id)
               const isExpanded = expandedBuyerIds.includes(officer.id)
-              const summary = getBuyerSummary(officer.id, balance)
               return (
                 <article className={`ticket-buyer-row ${isExpanded ? 'expanded' : 'collapsed'}`} key={officer.id}>
                   <header className="ticket-buyer-row-header">
                     <div className="ticket-buyer-row-copy">
                       <strong>{officer.name}</strong>
-                      <small>{summary}</small>
                       <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
                     </div>
                     <div className="ticket-buyer-inline-meals" aria-label={`${officer.name} 오늘 식사 체크`}>
@@ -186,8 +172,7 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                             onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
                             type="button"
                           >
-                            <span>{mealLabels[meal]}</span>
-                            <small>{use ? '구매' : '미등록'}</small>
+                            <span>{use ? '완료' : '등록'}</span>
                           </button>
                         )
                       })}
