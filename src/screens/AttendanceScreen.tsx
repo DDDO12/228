@@ -1,11 +1,32 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Filter, Search, X } from 'lucide-react'
 import type { AppState } from '../app/appState'
 import { AttendanceList } from '../components/AttendanceList'
+import { normalizeAttendanceStatus, type AttendanceItem } from '../domain/attendance'
 import { MealSelector } from '../components/MealSelector'
+import { getHangulInitials, matchesSearch } from '../utils/search'
 
 type DivisionFilter = string | 'all'
 type StatusFilter = 'all' | 'missing' | 'work'
+
+function normalizeQuickEntry(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, '')
+}
+
+function sortAttendanceItems(a: AttendanceItem, b: AttendanceItem) {
+  const statusA = normalizeAttendanceStatus(a.status, a.ate)
+  const statusB = normalizeAttendanceStatus(b.status, b.ate)
+  const rank = (status: typeof statusA) => (status !== 'ate' && status !== 'missing' ? 2 : status === 'ate' ? 1 : 0)
+  const sectionA = a.section?.trim() ?? ''
+  const sectionB = b.section?.trim() ?? ''
+  const sectionRank = Number(!sectionA) - Number(!sectionB)
+  return (
+    rank(statusA) - rank(statusB) ||
+    sectionRank ||
+    sectionA.localeCompare(sectionB, 'ko') ||
+    a.name.localeCompare(b.name, 'ko')
+  )
+}
 
 export function AttendanceScreen({ app }: { app: AppState }) {
   const [query, setQuery] = useState('')
@@ -13,6 +34,7 @@ export function AttendanceScreen({ app }: { app: AppState }) {
   const [section, setSection] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all')
   const [filterOpen, setFilterOpen] = useState(false)
+  const queryInputRef = useRef<HTMLInputElement>(null)
   const sections = useMemo(() => {
     const names = new Set<string>()
     app.sections.forEach((item) => {
@@ -25,6 +47,60 @@ export function AttendanceScreen({ app }: { app: AppState }) {
     })
     return Array.from(names).sort((a, b) => a.localeCompare(b, 'ko'))
   }, [app.sections, app.soldiers, divisionId])
+
+  const scopedItems = useMemo(() => {
+    return app.currentRecord.records
+      .filter((item) => {
+        if (divisionId !== 'all' && (item.divisionId ?? '') !== divisionId) return false
+        if (section !== 'all' && (item.section ?? '') !== section) return false
+        if (statusFilter === 'missing') return normalizeAttendanceStatus(item.status, item.ate) === 'missing'
+        if (statusFilter === 'work') {
+          const status = normalizeAttendanceStatus(item.status, item.ate)
+          return status !== 'ate' && status !== 'missing'
+        }
+        return true
+      })
+      .sort(sortAttendanceItems)
+  }, [app.currentRecord.records, divisionId, section, statusFilter])
+
+  async function submitQuickAttendance() {
+    const term = query.trim()
+    if (!term) return
+
+    const visibleMatches = scopedItems.filter((item) => matchesSearch(term, [item.name, item.divisionName, item.section]))
+    const normalizedTerm = normalizeQuickEntry(term)
+    const exactNameMatches = visibleMatches.filter((item) => normalizeQuickEntry(item.name) === normalizedTerm)
+    const exactInitialMatches = visibleMatches.filter(
+      (item) => normalizeQuickEntry(getHangulInitials(item.name)) === normalizedTerm,
+    )
+    const target =
+      exactNameMatches.length === 1
+        ? exactNameMatches[0]
+        : exactInitialMatches.length === 1
+          ? exactInitialMatches[0]
+          : visibleMatches.length === 1
+            ? visibleMatches[0]
+            : undefined
+
+    if (!target) {
+      if (visibleMatches.length === 0) app.setToast('일치하는 인원을 찾지 못했습니다.')
+      else app.setToast('같은 조건의 인원이 여러 명입니다. 이름을 조금 더 정확히 입력해 주세요.')
+      return
+    }
+
+    const status = normalizeAttendanceStatus(target.status, target.ate)
+    if (status === 'ate') app.setToast(`${target.name}은 이미 취식 처리되어 있습니다.`)
+    else await app.setAttendanceStatus(target.soldierId, 'ate')
+
+    setQuery('')
+    requestAnimationFrame(() => queryInputRef.current?.focus())
+  }
+
+  async function handleQueryKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    await submitQuickAttendance()
+  }
 
   function changeDivision(nextDivisionId: DivisionFilter) {
     setDivisionId(nextDivisionId)
@@ -48,7 +124,13 @@ export function AttendanceScreen({ app }: { app: AppState }) {
         </div>
         <label className="search-box">
           <Search size={18} />
-          <input onChange={(event) => setQuery(event.target.value)} placeholder="이름, 포대 또는 분과 검색" value={query} />
+          <input
+            onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => void handleQueryKeyDown(event)}
+            placeholder="이름, 포대 또는 분과 검색"
+            ref={queryInputRef}
+            value={query}
+          />
         </label>
         <button className="filter-dialog-button" onClick={() => setFilterOpen(true)} type="button">
           <Filter size={17} />
