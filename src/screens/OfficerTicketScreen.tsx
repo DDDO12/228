@@ -81,7 +81,10 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
       void app.deleteOfficerMealUse(existing.id)
       return
     }
-    void app.addOfficerMealUse(officerName, [meal])
+    void (async () => {
+      await app.addOfficerTicketPurchase(officerName, [meal], 1)
+      await app.addOfficerMealUse(officerName, [meal])
+    })()
   }
 
   function purchaseMealTicket(officerName: string, meal: MealType) {
@@ -153,6 +156,13 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
         </div>
         {visibleBuyers.length > 0 ? (
           <div className="ticket-buyer-board">
+            <div className="ticket-buyer-board-head" aria-hidden="true">
+              <span>이름</span>
+              <span>조식</span>
+              <span>중식</span>
+              <span>석식</span>
+              <span>관리</span>
+            </div>
             {visibleBuyers.map((officer) => {
               const balance = balances.get(officer.id) ?? { breakfast: 0, lunch: 0, dinner: 0 }
               const history = getHistory(officer.id)
@@ -165,6 +175,22 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       <strong>{officer.name}</strong>
                       <small>{summary}</small>
                       <small>누적 {history.dayCount}일 · {history.mealCount}식</small>
+                    </div>
+                    <div className="ticket-buyer-inline-meals" aria-label={`${officer.name} 오늘 식사 체크`}>
+                      {mealOrder.map((meal) => {
+                        const use = findTodayUse(officer.id, meal)
+                        return (
+                          <button
+                            className={use ? `active ${use.status}` : ''}
+                            key={meal}
+                            onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
+                            type="button"
+                          >
+                            <span>{mealLabels[meal]}</span>
+                            <small>{use ? '구매' : '미등록'}</small>
+                          </button>
+                        )
+                      })}
                     </div>
                     <div className="ticket-buyer-actions">
                       <button
@@ -183,22 +209,6 @@ export function OfficerTicketScreen({ app }: { app: AppState }) {
                       </button>
                     </div>
                   </header>
-                  <div className="ticket-buyer-inline-meals" aria-label={`${officer.name} 오늘 식사 체크`}>
-                    {mealOrder.map((meal) => {
-                      const use = findTodayUse(officer.id, meal)
-                      return (
-                        <button
-                          className={use ? `active ${use.status}` : ''}
-                          key={meal}
-                          onClick={() => toggleTodayMeal(officer.name, officer.id, meal)}
-                          type="button"
-                        >
-                          <span>{mealLabels[meal]}</span>
-                          <small>{use ? (use.status === 'ticket' ? '식권' : '미구매') : '미등록'}</small>
-                        </button>
-                      )
-                    })}
-                  </div>
                   {isExpanded && (
                     <div className="ticket-buyer-detail">
                       <div className="ticket-buyer-history-strip" aria-label={`${officer.name} 누적 식수`}>
